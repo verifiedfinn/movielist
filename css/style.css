@@ -99,7 +99,7 @@ html, body {
 #sb-overlay {
   display: none;
   position: fixed; inset: 0; z-index: 998;
-  background: rgba(0,0,0,0.78);
+  background: radial-gradient(ellipse at left, rgba(0,20,30,0.40) 0%, rgba(0,0,0,0.35) 100%);
   cursor: pointer;
 }
 #sb-overlay.open { display: block; }
@@ -117,8 +117,11 @@ html, body {
   display: none;
   flex-direction: column; justify-content: center; align-items: center; gap: 5px;
   width: 40px; height: 40px; flex-shrink: 0;
-  background: rgba(0,8,16,0.75); border: 1px solid rgba(0,255,255,0.35);
+  background: rgba(0,8,16,0.50); border: 1px solid rgba(0,255,255,0.35);
   border-radius: 4px; cursor: pointer; padding: 0;
+  touch-action: manipulation;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
   transition: box-shadow .2s, border-color .2s;
 }
 #menuBtn span {
@@ -181,7 +184,7 @@ html, body {
 #hud { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
 .hud-pill {
   display: flex; align-items: center; gap: 8px;
-  background: rgba(0,6,14,0.95);
+  background: rgba(0,6,14,0.65);
   border: 1px solid rgba(0,255,255,0.35);
   border-radius: 99px; padding: 7px 16px;
   box-shadow:
@@ -226,7 +229,9 @@ html, body {
   display: flex; flex-direction: column;
 
   clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
-  background: rgba(0, 8, 20, 0.98);
+  background: rgba(0, 8, 20, 0.55);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   border: 1px solid rgba(0,255,255,0.65);
 
   box-shadow:
@@ -251,7 +256,7 @@ html, body {
   display: flex; align-items: center; gap: 14px;
   padding: 0 20px; height: 52px; min-height: 44px;
   font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
-  color: rgba(255,255,255,0.82); cursor: pointer;
+  color: rgba(255,255,255,0.95); cursor: pointer;
   border-bottom: 1px solid rgba(0,255,255,0.07);
   position: relative;
   transition: color .22s, background .22s;
@@ -319,7 +324,9 @@ html, body {
     calc(100% - 26px) 100%, 26px 100%,
     0% calc(100% - 26px), 0% 26px
   );
-  background: rgba(0, 6, 16, 0.97);
+  background: rgba(0, 6, 16, 0.45);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(0,255,255,0.50);
 
   box-shadow:
@@ -346,7 +353,9 @@ html, body {
   padding: 0 20px;
   height: 54px;
   border-bottom: 1px solid rgba(0,255,255,0.14);
-  background: rgba(0,0,0,0.30);
+  background: rgba(0, 0, 0, 0.20);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 #filter-scroll {
@@ -514,6 +523,9 @@ html, body {
   aspect-ratio: 2 / 3;
   overflow: hidden;
   cursor: pointer;
+  background: rgba(0, 20, 35, 0.35);
+  -webkit-backdrop-filter: blur(4px) saturate(1.2);
+  backdrop-filter: blur(4px) saturate(1.2);
   border: 1px solid rgba(0,255,255,0.32);
   clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
   box-shadow:
@@ -601,11 +613,11 @@ html, body {
   position: absolute; inset: 0; z-index: 4; pointer-events: none;
   background: linear-gradient(
     to top,
-    rgba(0, 2, 8, 1.00)  0%,
-    rgba(0, 2, 8, 0.92) 28%,
-    rgba(0, 2, 8, 0.58) 50%,
-    rgba(0, 2, 8, 0.16) 68%,
-    transparent          84%
+    rgba(0, 5, 15, 0.88)  0%,
+    rgba(0, 5, 15, 0.72)  28%,
+    rgba(0, 5, 15, 0.38)  50%,
+    rgba(0, 5, 15, 0.10)  68%,
+    transparent            84%
   );
 }
 
@@ -1150,6 +1162,9 @@ html, body {
     gap: 10px;
   }
 
+  /* Header must sit above #main (position:relative creates stacking context) */
+  #hdr { position: relative; z-index: 20; }
+
   #menuBtn { display: flex; }
 
   /* Sidebar becomes a fixed drawer */
@@ -1160,6 +1175,7 @@ html, body {
     z-index: 999;
     transform: translateX(-102%);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
   }
   #sb-wrap.open { transform: translateX(0); }
 
@@ -1168,15 +1184,24 @@ html, body {
     clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
     border-radius: 0;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
+    background: rgba(0, 8, 20, 0.96);
   }
 
-  #logo { font-size: 28px; }
-  #hud .hud-status { display: none; }
-
+  /* Cards area: explicit scroll container so #main can stay overflow:hidden */
   #cardsWrap {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 14px;
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
+
+  #logo { font-size: 28px; }
+  #hud .hud-status  { display: none; }
+  #hud .hud-clock-pill { display: none; }
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -1191,6 +1216,7 @@ html, body {
 
   #logo { font-size: 22px; letter-spacing: 0.30em; }
   #logo-sub { display: none; }
+  #hud .hud-clock-pill { display: none; }
 
   /* Scrollable filter bar */
   #toolbar { padding: 0 12px; height: 48px; }

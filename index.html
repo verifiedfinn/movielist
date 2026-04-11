@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>THE GRID — Movie Tracker</title>
+  <title>THE Movie List</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -20,10 +20,10 @@
   <div id="loading-text">ACCESSING THE GRID...</div>
 </div>
 
-<!-- Mobile sidebar overlay -->
-<div id="sb-overlay"></div>
-
 <div id="app">
+
+  <!-- Mobile sidebar overlay (inside #app so z-index competes with #sb-wrap in the same stacking context) -->
+  <div id="sb-overlay"></div>
 
   <!-- HEADER -->
   <header id="hdr">
@@ -34,7 +34,7 @@
     <div class="h-rule"></div>
 
     <div id="logo-block">
-      <div id="logo">The Grid</div>
+      <div id="logo">The Movie List</div>
       <div id="logo-sub">Movie Tracker &nbsp;//&nbsp; User Sector</div>
     </div>
 
@@ -47,7 +47,7 @@
       </div>
       <div class="hud-pill hud-clock-pill">
         <span class="hud-lbl">Local</span>
-        <span id="hudClock"><span id="cTime">00:00:00</span><span id="cAmpm" class="c-ampm">AM</span></span>
+        <span id="hudClock"><span id="cTime">00:00</span><span id="cAmpm" class="c-ampm">AM</span></span>
       </div>
     </div>
   </header>
@@ -90,7 +90,7 @@
         <span class="sv amber" id="statFav">0</span>
       </div>
 
-      <div class="sb-foot">End of Line &nbsp;//&nbsp; CLU 2.0</div>
+      <div class="sb-foot">End of Line &nbsp;//&nbsp; 2.0</div>
     </nav>
   </div>
 
