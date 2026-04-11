@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>THE GRID — Movie Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div id="horizon-light"></div>
+<div id="scanlines"></div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div id="loading-grid">
+    <div class="lg-plane"></div>
+  </div>
+  <div id="loading-text">ACCESSING THE GRID...</div>
+</div>
+
+<!-- Mobile sidebar overlay -->
+<div id="sb-overlay"></div>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="hdr">
+    <button id="menuBtn" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="h-rule"></div>
+
+    <div id="logo-block">
+      <div id="logo">The Grid</div>
+      <div id="logo-sub">Movie Tracker &nbsp;//&nbsp; User Sector</div>
+    </div>
+
+    <div class="h-rule"></div>
+
+    <div id="hud">
+      <div class="hud-pill hud-status">
+        <span class="hdot"></span>
+        <span class="hud-lbl">Online</span>
+      </div>
+      <div class="hud-pill hud-clock-pill">
+        <span class="hud-lbl">Local</span>
+        <span id="hudClock"><span id="cTime">00:00:00</span><span id="cAmpm" class="c-ampm">AM</span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <div id="sb-wrap">
+    <nav id="sidebar">
+
+      <div class="p-label">Navigation</div>
+      <div class="nav-item active" data-filter="all">
+        <span class="n-ico">&#9670;</span> All Titles
+      </div>
+      <div class="nav-item" data-filter="queue">
+        <span class="n-ico">&#9678;</span> Queue
+      </div>
+      <div class="nav-item" data-filter="seen">
+        <span class="n-ico">&#9679;</span> Seen
+      </div>
+      <div class="nav-item" data-filter="favorites">
+        <span class="n-ico">&#9733;</span> Favorites
+      </div>
+
+      <div class="p-rule"></div>
+      <div class="p-label">Sector Data</div>
+
+      <div class="stat-row">
+        <span class="sk">Total</span>
+        <span class="sv" id="statTotal">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="sk">Seen</span>
+        <span class="sv" id="statSeen">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="sk">Queue</span>
+        <span class="sv" id="statQueue">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="sk">Favs</span>
+        <span class="sv amber" id="statFav">0</span>
+      </div>
+
+      <div class="sb-foot">End of Line &nbsp;//&nbsp; CLU 2.0</div>
+    </nav>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main-wrap">
+    <main id="main">
+      <div class="inner-grid"></div>
+
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <div id="filter-scroll">
+          <span class="tb-lbl">Filter</span>
+          <button class="fbtn active" data-filter="all">All</button>
+          <button class="fbtn" data-filter="queue">Queue</button>
+          <button class="fbtn" data-filter="seen">Seen</button>
+          <button class="fbtn" data-filter="favorites">Favs</button>
+        </div>
+      </div>
+
+      <!-- Section heading -->
+      <div id="section-hdr">
+        <div id="section-rule"></div>
+        <div id="section-title">All Titles</div>
+        <div id="section-count" aria-live="polite" aria-atomic="true"></div>
+      </div>
+
+      <div id="cardsWrap" role="list" aria-live="polite" aria-atomic="false"></div>
+    </main>
+  </div>
+
+</div>
+
+<!-- DETAIL MODAL -->
+<div id="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+  <div id="detail-wrap">
+    <div id="detail-modal">
+      <button id="detailClose" aria-label="Close">✕</button>
+      <div id="detail-inner">
+        <div id="detail-poster-col">
+          <div id="detail-poster-box">
+            <img id="detailImg" src="" alt="">
+            <div id="detail-poster-tint"></div>
+          </div>
+          <div id="detail-poster-empty">◈</div>
+        </div>
+        <div id="detail-info-col">
+          <div id="detail-title"></div>
+          <div id="detail-sub-row">
+            <span id="detail-year"></span>
+            <span class="detail-dot">·</span>
+            <span id="detail-runtime"></span>
+          </div>
+          <div id="detail-genre"></div>
+          <div id="detail-director"></div>
+          <div id="detail-ratings">
+            <span id="detail-imdb"></span>
+          </div>
+          <div id="detail-divider"></div>
+          <button id="plotToggleBtn" aria-expanded="false">▸ Synopsis</button>
+          <div id="detail-plot" aria-hidden="true"></div>
+          <div id="detail-action-row">
+            <div id="detail-user-meta"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/canvas.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
