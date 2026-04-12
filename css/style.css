@@ -508,6 +508,7 @@ html, body {
   position: relative; z-index: 1;
   flex: 1; min-height: 0; overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   padding: 20px 22px 24px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -1165,6 +1166,12 @@ html, body {
   /* Header must sit above #main (position:relative creates stacking context) */
   #hdr { position: relative; z-index: 20; }
 
+  /* clip-path + overflow:hidden breaks iOS child scroll — use border-radius instead */
+  #main {
+    clip-path: none;
+    border-radius: 10px;
+  }
+
   #menuBtn { display: flex; }
 
   /* Sidebar becomes a fixed drawer */
@@ -1187,16 +1194,10 @@ html, body {
     background: rgba(0, 8, 20, 0.96);
   }
 
-  /* Cards area: explicit scroll container so #main can stay overflow:hidden */
   #cardsWrap {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 14px;
-    flex: 1;
-    min-height: 0;
-    height: auto;
-    max-height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   #logo { font-size: 28px; }
