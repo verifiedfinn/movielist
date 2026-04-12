@@ -115,7 +115,8 @@
     showLoading();
 
     try {
-      const resp = await fetch(SHEETS_URL);
+      /* Cache-bust so a sheet update is always picked up on reload */
+      const resp = await fetch(SHEETS_URL + '&_=' + Date.now());
       if (!resp.ok) throw new Error(resp.status);
       movies = parseCSV(await resp.text());
     } catch (e) {
@@ -402,6 +403,10 @@
     detailActionRow.style.display = parts.length ? '' : 'none';
 
     detailOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    /* Reset scroll to top each time modal opens */
+    const dWrap = document.getElementById('detail-wrap');
+    if (dWrap) dWrap.scrollTop = 0;
     document.getElementById('detailClose').focus();
   }
 
@@ -411,7 +416,10 @@
     plotToggleBtn.textContent = open ? '▾ Synopsis' : '▸ Synopsis';
   });
 
-  function closeDetail() { detailOverlay.classList.remove('open'); }
+  function closeDetail() {
+    detailOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 
   detailImg.addEventListener('error', () => {
     detailPosterBox.style.display   = 'none';
@@ -466,6 +474,20 @@
   }
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+  /* ── Refresh button ── */
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      refreshBtn.classList.add('spinning');
+      refreshBtn.addEventListener('animationend', () => refreshBtn.classList.remove('spinning'), { once: true });
+      movies = [];
+      filter = 'all';
+      document.querySelectorAll('[data-filter]').forEach(el =>
+        el.classList.toggle('active', el.dataset.filter === 'all'));
+      loadData();
+    });
+  }
 
   loadData();
 
