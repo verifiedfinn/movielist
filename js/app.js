@@ -30,7 +30,7 @@
     let h = d.getHours();
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
-    cTime.textContent = [h, d.getMinutes(), d.getSeconds()]
+    cTime.textContent = [h, d.getMinutes()]
       .map(n => String(n).padStart(2, '0')).join(':');
     cAmpm.textContent = ampm;
   }
@@ -309,7 +309,6 @@
           <div class="card-footer-head">
             <div class="card-meta-row">
               ${metaStr    ? `<span class="card-year-imdb">${metaStr}</span>` : ''}
-              ${genreFirst ? `<span class="card-genre-tag">${escHtml(genreFirst)}</span>` : ''}
             </div>
             <div class="card-title-row">
               <div class="card-title">${escHtml(m.title)}</div>
@@ -374,8 +373,14 @@
     detailSubRow.querySelectorAll('.detail-dot').forEach(d =>
       d.style.display = (m.year && hasRuntime) ? '' : 'none');
 
-    detailGenre.textContent   = m.genre || '';
-    detailGenre.style.display = m.genre ? '' : 'none';
+    if (m.genre) {
+      detailGenre.innerHTML = m.genre.split(',')
+        .map(g => `<span class="detail-genre-tag">${escHtml(g.trim())}</span>`).join('');
+      detailGenre.style.display = '';
+    } else {
+      detailGenre.innerHTML = '';
+      detailGenre.style.display = 'none';
+    }
 
     detailDirector.textContent   = m.director ? 'Dir. ' + escHtml(m.director) : '';
     detailDirector.style.display = m.director ? '' : 'none';

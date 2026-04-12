@@ -206,7 +206,7 @@ html, body {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
   text-shadow: 0 0 4px #fff, 0 0 12px #00ffff, 0 0 28px rgba(0,255,255,0.4);
-  display: inline-block; width: 72px; text-align: center;
+  display: inline-block; width: 52px; text-align: center;
 }
 .c-ampm {
   font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
@@ -625,7 +625,7 @@ html, body {
 /* ── Top row: status + fav badges ── */
 .card-top {
   position: absolute; top: 10px; left: 10px; right: 10px;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: flex-start; justify-content: space-between;
   z-index: 12; pointer-events: none;
 }
 .card-status-badge {
@@ -700,22 +700,6 @@ html, body {
     0 0 10px #ffb300,
     0 0 24px rgba(255,179,0,0.55),
     0 1px 3px rgba(0,0,0,0.9);
-}
-.card-genre-tag {
-  flex: 0 1 auto;       /* can shrink when space is tight */
-  margin-left: auto;    /* push to right without space-between quirks */
-  font-size: 7.5px; letter-spacing: 0.07em; text-transform: uppercase;
-  padding: 2px 7px;
-  line-height: 1;       /* same line-height as year text */
-  background: rgba(0,0,0,0.72);
-  border: 1px solid rgba(0,255,255,0.18);
-  color: rgba(0,255,255,0.75);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 56%;
-}
-.card.fav .card-genre-tag {
-  border-color: rgba(255,179,0,0.22);
-  color: rgba(255,179,0,0.80);
 }
 
 /* Title row — flex so toggle sits beside the title */
@@ -1343,14 +1327,6 @@ html, body {
     white-space: nowrap !important;
   }
 
-  .card-genre-tag {
-    font-size: 9px !important;
-    margin-left: 4px !important;
-    max-width: 70px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
 
   .card-status-badge {
     font-size: 7px !important;
@@ -1425,7 +1401,6 @@ html, body {
     min-height: 62px !important;
   }
 
-  .card-genre-tag { display: none !important; }
 
 
   /* Full-screen modal on mobile */
@@ -1522,35 +1497,44 @@ html, body {
 #detail-info-col {
   flex: 1; min-width: 0;
   padding: 32px 36px 28px 30px;
-  display: flex; flex-direction: column; gap: 0;
+  display: flex; flex-direction: column; gap: 10px;
   overflow-y: auto; max-height: 80vh;
   -webkit-overflow-scrolling: touch;
 }
 
 #detail-title {
   font-size: 22px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase;
-  color: #fff; line-height: 1.2; margin-bottom: 10px;
+  color: #fff; line-height: 1.2;
   text-shadow: 0 0 3px rgba(255,255,255,0.4), 0 0 12px rgba(0,255,255,0.25);
 }
 
 #detail-sub-row {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
   font-size: 12px; letter-spacing: 0.05em;
   color: rgba(255,255,255,0.70);
 }
 .detail-dot { color: rgba(0,255,255,0.45); }
 
 #detail-genre {
-  font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
-  color: rgba(0,255,255,0.80); margin-bottom: 6px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.detail-genre-tag {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 10px;
+  background: rgba(0,0,0,0.70);
+  border: 1px solid rgba(0,255,255,0.35);
+  color: rgba(0,255,255,0.90);
+  text-shadow: 0 0 6px rgba(0,255,255,0.4);
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  white-space: nowrap;
 }
 #detail-director {
   font-size: 11px; letter-spacing: 0.03em;
-  color: rgba(255,255,255,0.60); margin-bottom: 14px;
+  color: rgba(255,255,255,0.60);
 }
 
 #detail-ratings {
-  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  display: flex; gap: 10px; flex-wrap: wrap;
 }
 #detail-imdb {
   padding: 4px 12px;
@@ -1568,7 +1552,7 @@ html, body {
 }
 
 #detail-divider {
-  height: 1px; background: rgba(0,255,255,0.14); margin-bottom: 14px;
+  height: 1px; background: rgba(0,255,255,0.14);
 }
 
 /* Synopsis toggle button */
