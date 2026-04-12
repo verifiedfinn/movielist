@@ -430,10 +430,19 @@
     menuBtn.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false');
   }
 
-  menuBtn   && menuBtn.addEventListener('click', () =>
+  menuBtn && menuBtn.addEventListener('click', () =>
     sbWrap.classList.contains('open') ? closeSidebar() : openSidebar());
-  sbOverlay && sbOverlay.addEventListener('click', closeSidebar);
-  sbOverlay && sbOverlay.addEventListener('touchend', e => { e.preventDefault(); closeSidebar(); });
+
+  /* Intercept clicks in the capture phase (before any element gets them).
+     If the sidebar is open and the click is outside it, stop the event
+     completely so nothing behind the overlay gets triggered. */
+  document.addEventListener('click', e => {
+    if (!sbWrap.classList.contains('open')) return;
+    if (sbWrap.contains(e.target) || (menuBtn && menuBtn.contains(e.target))) return;
+    e.stopImmediatePropagation();
+    closeSidebar();
+  }, true);
+
   document.querySelectorAll('.nav-item').forEach(el =>
     el.addEventListener('click', () => { if (window.innerWidth <= 900) closeSidebar(); }));
 
