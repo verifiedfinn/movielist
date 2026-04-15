@@ -279,6 +279,10 @@ html, body {
 .nav-item.active::before { background: #ffb300; box-shadow: var(--neon-am); }
 .n-ico { font-size: 14px; opacity: 1; flex-shrink: 0; }
 
+/* Lucky Draw nav item */
+#navLucky:hover { color: #fff; background: rgba(0,255,255,0.07); }
+#navLucky:hover::before { background: #00ffff; box-shadow: var(--neon); }
+
 /* Stats */
 .stat-row {
   display: flex; justify-content: space-between; align-items: center;
@@ -533,8 +537,9 @@ html, body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   padding: 20px 22px 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 16px; align-content: start;
 }
 #cardsWrap::-webkit-scrollbar { width: 2px; }
@@ -544,6 +549,7 @@ html, body {
 /* ── CARD — poster-background design ── */
 .card {
   position: relative;
+  flex: 0 0 160px;
   aspect-ratio: 2 / 3;
   overflow: hidden;
   cursor: pointer;
@@ -817,7 +823,40 @@ html, body {
   background:
     radial-gradient(circle, rgba(0,255,255,0.048) 1px, transparent 1px) 0 0 / 24px 24px,
     rgba(0, 8, 20, 0.98);
+  display: flex; align-items: center; justify-content: center;
 }
+
+/* ── Shared no-poster placeholder content ── */
+.npc-inner {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 7px; padding: 12px; text-align: center;
+  pointer-events: none;
+}
+.npc-glyph {
+  color: rgba(0,255,255,0.30);
+  font-size: 18px; letter-spacing: 3px; line-height: 1;
+}
+.npc-title {
+  color: rgba(0,255,255,0.72);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.4px; text-transform: uppercase; line-height: 1.45;
+  text-shadow: 0 0 6px rgba(0,255,255,0.40), 0 0 14px rgba(0,255,255,0.16);
+}
+.npc-year {
+  color: rgba(0,255,255,0.32);
+  font-size: 8px; letter-spacing: 2px;
+}
+/* Detail modal — more room, so bump up size slightly */
+#detail-poster-empty .npc-glyph { font-size: 28px; }
+#detail-poster-empty .npc-title { font-size: 13px; letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0,255,255,0.55), 0 0 22px rgba(0,255,255,0.22); }
+#detail-poster-empty .npc-year  { font-size: 10px; }
+/* Lucky result panel */
+#lucky-result-no-poster .npc-glyph { font-size: 22px; }
+#lucky-result-no-poster .npc-title { font-size: 11px;
+  text-shadow: 0 0 8px rgba(0,255,255,0.50), 0 0 18px rgba(0,255,255,0.20); }
+#lucky-result-no-poster .npc-year  { font-size: 9px; }
 
 /* ── DATA CORRUPTED card ── */
 .card.card-corrupted {
@@ -1396,8 +1435,8 @@ html, body {
 @media (max-width: 540px) {
   #app {
     grid-template-rows: 60px 1fr;
-    padding: 8px 8px 10px;
-    gap: 8px;
+    padding: 14px 10px 0;
+    gap: 12px;
   }
 
   #logo { font-size: 22px; letter-spacing: 0.30em; }
@@ -1410,13 +1449,21 @@ html, body {
   .tb-lbl { display: none; }
   .fbtn { padding: 6px 11px; font-size: 7.5px; }
 
+  /* Lucky button — keep label, enlarge touch target */
+  #luckyBtn {
+    height: 36px; padding: 6px 11px;
+    font-size: 8px; gap: 5px;
+    min-height: 44px;
+  }
+  #lucky-btn-ico { font-size: 13px; }
+
   #section-hdr { padding: 12px 14px 10px; }
   #section-title { font-size: 14px; letter-spacing: 0.22em; }
 
-  /* Narrower screens: tighter list padding */
+  /* Narrower screens: breathing room + safe-area support */
   #cardsWrap {
-    padding: 8px 10px 14px !important;
-    gap: 6px !important;
+    padding: 14px 12px calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 8px !important;
   }
 
   .card {
@@ -1513,7 +1560,6 @@ html, body {
   position: absolute; inset: 0;
   display: none;
   align-items: center; justify-content: center;
-  font-size: 48px; color: rgba(0,255,255,0.20);
 }
 
 /* ── Info column ── */
@@ -1813,6 +1859,7 @@ a, button, [role="button"], [tabindex] {
     width: 44px;
     height: 44px;
   }
+  #luckyBtn { min-height: 44px; padding: 8px 13px; }
   /* Larger card-status and fav badges for tap convenience */
   .card-status-badge { padding: 5px 11px; }
 }
@@ -1822,6 +1869,559 @@ a, button, [role="button"], [tabindex] {
   #cardsWrap {
     grid-template-columns: 1fr;
   }
+}
+
+/* ────────────────────────────────────────────────────────────
+   LUCKY DRAW
+──────────────────────────────────────────────────────────── */
+#lucky-overlay {
+  position: fixed; inset: 0; z-index: 1200;
+  /* flex-direction: column + margin: auto on modal = centres when space allows,
+     scrolls from the top when content is taller than viewport. Using
+     align-items: center would break scrollability on short/landscape screens. */
+  display: flex; flex-direction: column;
+  background: rgba(0, 2, 10, 0.92);
+  backdrop-filter: blur(18px) saturate(0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(0.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s;
+  overflow-y: auto;
+  padding: 20px;
+}
+#lucky-overlay.open { opacity: 1; pointer-events: auto; }
+/* Needed so margin:auto on the modal centres it when content is shorter than viewport */
+#lucky-overlay::before { content: ''; flex: 1; }
+#lucky-overlay::after  { content: ''; flex: 1; }
+
+#lucky-modal {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 22px;
+  width: min(100%, 760px);
+  margin: 0 auto; /* horizontal centering; vertical handled by flex spacers above */
+  background: rgba(0, 4, 14, 0.96);
+  border: 1px solid rgba(0,255,255,0.38);
+  border-radius: 8px;
+  padding: 40px 36px 44px;
+  box-shadow:
+    0 0 0 1px rgba(0,255,255,0.08),
+    0 0 40px rgba(0,255,255,0.14),
+    0 0 90px rgba(0,255,255,0.05),
+    inset 0 0 60px rgba(0,255,255,0.025);
+}
+
+#luckyClose {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px;
+  background: rgba(0,255,255,0.07);
+  border: 1px solid rgba(0,255,255,0.28);
+  border-radius: 3px;
+  color: rgba(0,255,255,0.72); font-family: inherit; font-size: 12px;
+  cursor: pointer; line-height: 1;
+  transition: background .2s, color .2s;
+}
+#luckyClose:hover { background: rgba(0,255,255,0.16); color: #fff; }
+
+/* Header */
+#lucky-header { text-align: center; display: flex; flex-direction: column; gap: 6px; }
+#lucky-suits {
+  font-size: 20px;
+  color: rgba(0,255,255,0.48);
+  text-shadow: 0 0 12px rgba(0,255,255,0.28);
+  letter-spacing: 0.16em;
+}
+#lucky-title-txt {
+  font-size: 26px; font-weight: 900;
+  letter-spacing: 0.35em; text-transform: uppercase; color: #fff;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 10px #00ffff,
+    0 0 28px #00ffff,
+    0 0 55px rgba(0,255,255,0.28);
+}
+#lucky-pool-label {
+  font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: rgba(0,255,255,0.42);
+}
+
+/* Arena */
+#lucky-arena {
+  position: relative;
+  width: 100%; height: 300px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: visible;
+  transition: opacity 0.38s;
+  /* 3D stage for the carousel */
+  perspective: 750px;
+  perspective-origin: 50% 50%;
+}
+
+/* Carousel — the spinning ring that holds all cards */
+#lucky-carousel {
+  position: relative;
+  width: 140px; height: 196px;
+  transform-style: preserve-3d;
+}
+
+/* Cards */
+.lucky-card {
+  border-radius: 8px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+/* Stacked idle: positioned absolutely in the arena via JS inline styles */
+/* Carousel mode: fill the carousel box */
+#lucky-carousel .lucky-card {
+  position: absolute;
+  inset: 0;
+}
+.lucky-card-inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.80s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 8px;
+}
+.lucky-card.flipped .lucky-card-inner { transform: rotateY(180deg); }
+
+.lucky-card-back,
+.lucky-card-front {
+  position: absolute; inset: 0; border-radius: 8px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Card back — Tron circuit board */
+.lucky-card-back {
+  background: rgba(0, 5, 16, 0.98);
+  border: 1px solid rgba(0,255,255,0.55);
+  box-shadow:
+    0 0 8px rgba(0,255,255,0.22),
+    0 0 22px rgba(0,255,255,0.09),
+    inset 0 0 28px rgba(0,255,255,0.04);
+  background-image:
+    repeating-linear-gradient(0deg,
+      transparent 0px, transparent 16px,
+      rgba(0,255,255,0.050) 16px, rgba(0,255,255,0.050) 17px),
+    repeating-linear-gradient(90deg,
+      transparent 0px, transparent 16px,
+      rgba(0,255,255,0.050) 16px, rgba(0,255,255,0.050) 17px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px; color: rgba(0,255,255,0.38);
+  text-shadow: 0 0 12px #00ffff, 0 0 30px rgba(0,255,255,0.26);
+  animation: lucky-card-pulse 3s ease-in-out infinite;
+}
+@keyframes lucky-card-pulse {
+  0%,100% { box-shadow: 0 0 8px rgba(0,255,255,0.22), 0 0 22px rgba(0,255,255,0.09), inset 0 0 28px rgba(0,255,255,0.04); }
+  50%     { box-shadow: 0 0 16px rgba(0,255,255,0.40), 0 0 40px rgba(0,255,255,0.18), inset 0 0 30px rgba(0,255,255,0.07); }
+}
+
+/* Holographic neon shimmer — scatter cards only (not carousel cards) */
+#lucky-arena > .lucky-card .lucky-card-back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* iridescent sweep: cyan → ice white → electric blue → faint violet */
+  background: linear-gradient(
+    112deg,
+    transparent            20%,
+    rgba(0,220,255,0.12)   36%,
+    rgba(200,248,255,0.26) 50%,
+    rgba(100,120,255,0.14) 64%,
+    transparent            78%
+  );
+  background-size: 280% 100%;
+  animation: holo-sheen 2.6s ease-in-out infinite alternate;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 1;
+}
+@keyframes holo-sheen {
+  from { background-position: 150% 0; }
+  to   { background-position: -50% 0; }
+}
+
+/* Neon edge — slow color drift, cyan → electric blue → violet → back */
+#lucky-arena > .lucky-card .lucky-card-back {
+  animation: lucky-card-pulse 3s ease-in-out infinite, holo-edge 5s ease-in-out infinite;
+}
+@keyframes holo-edge {
+  0%,100% { border-color: rgba(0,255,255,0.52);  box-shadow: 0 0 8px rgba(0,255,255,0.22), 0 0 22px rgba(0,255,255,0.09), inset 0 0 28px rgba(0,255,255,0.04); }
+  40%     { border-color: rgba(60,160,255,0.72);  box-shadow: 0 0 10px rgba(60,160,255,0.28), 0 0 28px rgba(60,160,255,0.12), inset 0 0 28px rgba(60,160,255,0.05); }
+  70%     { border-color: rgba(140,80,255,0.60);  box-shadow: 0 0 8px rgba(140,80,255,0.22), 0 0 22px rgba(140,80,255,0.09), inset 0 0 28px rgba(140,80,255,0.04); }
+}
+
+/* Card front */
+.lucky-card-front {
+  transform: rotateY(180deg);
+  background: rgba(0,4,12,0.98);
+  border: 1px solid rgba(0,255,255,0.50);
+  box-shadow: 0 0 18px rgba(0,255,255,0.35), 0 0 40px rgba(0,255,255,0.14);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.lf-poster {
+  flex: 1;
+  background-size: cover; background-position: center;
+  background-color: rgba(0,6,18,0.95);
+  display: flex; align-items: center; justify-content: center;
+}
+.lf-title {
+  padding: 6px 8px;
+  background: rgba(0,3,10,0.98);
+  font-size: 9px; letter-spacing: 0.06em;
+  color: rgba(0,255,255,0.85);
+  text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-top: 1px solid rgba(0,255,255,0.18);
+}
+
+/* Flash burst on card reveal */
+.lucky-flash {
+  position: absolute; inset: -100px;
+  border-radius: 50%; pointer-events: none;
+  opacity: 0; transform: scale(0.3);
+}
+.lucky-flash.active {
+  animation: lucky-flash-burst 0.70s ease-out forwards;
+}
+@keyframes lucky-flash-burst {
+  0%  { opacity: 0;    transform: scale(0.25);
+        background: radial-gradient(ellipse at center, rgba(0,255,255,0.55) 0%, transparent 65%); }
+  20% { opacity: 1;    transform: scale(1.05);
+        background: radial-gradient(ellipse at center, rgba(0,255,255,0.40) 0%, rgba(0,255,255,0.10) 40%, transparent 70%); }
+  100%{ opacity: 0;    transform: scale(1.80);
+        background: radial-gradient(ellipse at center, rgba(0,255,255,0.05) 0%, transparent 60%); }
+}
+
+/* ── Tron impact ──────────────────────────────────────────────────── */
+
+@property --tx  { syntax: '<length>'; inherits: false; initial-value: 0px;  }
+@property --ty  { syntax: '<length>'; inherits: false; initial-value: 0px;  }
+@property --rot { syntax: '<angle>';  inherits: false; initial-value: 0deg; }
+
+.lucky-impact {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 9;
+}
+/* Hot-core blast */
+.lucky-impact.active::before {
+  content: '';
+  position: absolute;
+  width: 80px; height: 80px;
+  margin: -40px 0 0 -40px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255,255,255,1.0)  0%,
+    rgba(200,255,255,0.95) 18%,
+    rgba(0,255,255,0.80)   38%,
+    rgba(0,180,255,0.40)   62%,
+    transparent 80%
+  );
+  filter: blur(2px);
+  animation: impact-flash 0.55s cubic-bezier(0.05, 0, 0.18, 1) forwards;
+}
+/* Scan-line streak */
+.lucky-impact.active::after {
+  content: '';
+  position: absolute;
+  width: 6px; height: 2px;
+  margin: -1px 0 0 -3px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 0 12px 5px rgba(0,255,255,0.88), 0 0 44px 8px rgba(0,255,255,0.38);
+  animation: impact-streak 0.50s ease-out forwards;
+}
+
+/* Spark streaks — 1px wide lines oriented along their travel direction */
+.lucky-spark {
+  position: absolute;
+  width: 1px;
+  background: var(--c, rgba(0,255,255,0.9));
+  opacity: 0;
+}
+.lucky-impact.active .lucky-spark {
+  animation: impact-spark var(--dur, 350ms) var(--del, 0ms) ease-out forwards;
+}
+
+/* Dust blobs — close settling specks */
+.lucky-dust {
+  position: absolute;
+  background: var(--c, rgba(0,255,255,0.9));
+  opacity: 0;
+}
+.lucky-impact.active .lucky-dust {
+  animation: impact-dust var(--dur, 400ms) var(--del, 0ms) ease-out forwards;
+}
+
+@keyframes impact-flash {
+  0%   { transform: scale(0.04); opacity: 1; }
+  28%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(3.40); opacity: 0; }
+}
+@keyframes impact-streak {
+  0%   { transform: scaleX(1)   scaleY(1);    opacity: 1;    }
+  22%  { transform: scaleX(55)  scaleY(0.8);  opacity: 0.88; }
+  100% { transform: scaleX(175) scaleY(0.04); opacity: 0;    }
+}
+/* spark translates in screen space, rotation is fixed (orients along travel) */
+@keyframes impact-spark {
+  0%   { transform: translate(0px, 0px)             rotate(var(--rot)) scaleY(1.0); opacity: 1;    }
+  12%  {                                                                             opacity: 0.88; }
+  100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scaleY(0.1); opacity: 0;   }
+}
+@keyframes impact-dust {
+  0%   { transform: rotate(45deg) translate(0px, 0px)             scale(2.2); opacity: 1;    }
+  10%  {                                                                       opacity: 0.90; }
+  100% { transform: rotate(45deg) translate(var(--tx), var(--ty)) scale(0.1); opacity: 0;    }
+}
+
+/* ── Per-card blue tap — as each card reaches center during vortex ── */
+.lucky-card-tap {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+/* Brief diamond flash at hit point */
+.lucky-card-tap.active::before {
+  content: '';
+  position: absolute;
+  width: 17px; height: 17px;
+  margin: -8.5px 0 0 -8.5px;
+  background: radial-gradient(ellipse at center,
+    rgba(255,255,255,1.0)  0%,
+    rgba(0,224,255,0.88)  50%,
+    rgba(0,180,255,0.30) 100%);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  box-shadow: 0 0 6px rgba(0,220,255,0.85), 0 0 18px rgba(0,200,255,0.45), 0 0 36px rgba(0,180,255,0.16);
+  animation: tap-flash 0.46s cubic-bezier(0.05, 0, 0.20, 1) forwards;
+}
+/* second ripple — trails the first, softer */
+.lucky-card-tap.active::after {
+  content: '';
+  position: absolute;
+  width: 24px; height: 17px;
+  margin: -8.5px 0 0 -12px;
+  border-radius: 50%;
+  border: 0.7px solid rgba(120,208,255,0.45);
+  opacity: 0;
+  animation: tap-ripple 0.72s 0.09s cubic-bezier(0.06, 0, 0.14, 1) forwards;
+}
+/* Ripple — oval, expands outward */
+.tap-ripple {
+  position: absolute;
+  width: 24px; height: 17px;
+  margin: -8.5px 0 0 -12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,200,255,0.65);
+  box-shadow: 0 0 5px rgba(0,190,255,0.22);
+  opacity: 0;
+}
+.lucky-card-tap.active .tap-ripple {
+  animation: tap-ripple 0.52s cubic-bezier(0.06, 0, 0.16, 1) forwards;
+}
+@keyframes tap-ripple {
+  0%   { transform: scale(0.06); opacity: 0.92; }
+  28%  {                         opacity: 0.70; }
+  100% { transform: scale(5.5);  opacity: 0;    }
+}
+
+/* Mini sparks — 5 added per-tap by JS */
+.tap-spark {
+  position: absolute;
+  width: 1px;
+  background: rgba(0,210,255,0.90);
+  opacity: 0;
+}
+.lucky-card-tap.active .tap-spark {
+  animation: tap-spark-fly var(--dur, 220ms) ease-out forwards;
+}
+@keyframes tap-flash {
+  0%   { transform: scale(0.05);  opacity: 1.0;  }
+  7%   { transform: scale(1.02);  opacity: 0.96; }
+  28%  { transform: scale(1.14);  opacity: 0.78; }
+  65%  { transform: scale(1.55);  opacity: 0.28; }
+  100% { transform: scale(2.80);  opacity: 0;    }
+}
+
+@keyframes tap-spark-fly {
+  0%   { transform: translate(0px, 0px)             rotate(var(--rot)) scaleY(1.2); opacity: 1;   }
+  100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scaleY(0.1); opacity: 0;   }
+}
+
+/* Result panel — centred column layout */
+#lucky-result-panel {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 16px; width: 100%; text-align: center;
+  animation: lucky-result-in 0.45s ease-out;
+}
+#lucky-result-panel[hidden] { display: none !important; }
+@keyframes lucky-result-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#lucky-result-poster {
+  flex-shrink: 0; position: relative;
+  width: 140px; height: 196px;
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid rgba(0,255,255,0.42);
+  box-shadow: 0 0 18px rgba(0,255,255,0.28), 0 0 45px rgba(0,255,255,0.10);
+}
+#luckyImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+#lucky-result-no-poster {
+  position: absolute; inset: 0;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0,5,16,0.95);
+}
+
+#lucky-result-info {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 100%;
+}
+#lucky-result-title {
+  font-size: 22px; font-weight: 900;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: #fff; line-height: 1.25;
+  text-shadow: 0 0 6px rgba(255,255,255,0.3), 0 0 20px rgba(0,255,255,0.35);
+}
+#lucky-result-meta {
+  font-size: 11px; letter-spacing: 0.10em;
+  color: rgba(0,255,255,0.65);
+}
+#lucky-result-genre { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+.lucky-genre-tag {
+  font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase;
+  background: rgba(0,255,255,0.08);
+  border: 1px solid rgba(0,255,255,0.26);
+  border-radius: 3px; padding: 2px 7px;
+  color: rgba(0,255,255,0.68);
+}
+#luckyViewBtn {
+  margin-top: 6px; padding: 8px 14px; align-self: center;
+  background: rgba(0,255,255,0.10);
+  border: 1px solid rgba(0,255,255,0.42);
+  border-radius: 4px;
+  color: rgba(0,255,255,0.85);
+  font-family: inherit; font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  cursor: pointer; transition: background .2s, color .2s, box-shadow .2s;
+}
+#luckyViewBtn:hover {
+  background: rgba(0,255,255,0.20); color: #fff;
+  box-shadow: 0 0 12px rgba(0,255,255,0.28);
+}
+
+/* Controls */
+#lucky-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+
+.lucky-btn-primary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 26px;
+  background: rgba(0,255,255,0.10);
+  border: 1px solid rgba(0,255,255,0.52);
+  border-radius: 4px;
+  color: #00ffff;
+  font-family: inherit; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.20em; text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(0,255,255,0.18), inset 0 0 14px rgba(0,255,255,0.04);
+  transition: background .2s, box-shadow .2s, color .2s;
+}
+.lucky-btn-primary:hover:not(:disabled) {
+  background: rgba(0,255,255,0.20);
+  box-shadow: 0 0 24px rgba(0,255,255,0.34), 0 0 55px rgba(0,255,255,0.12), inset 0 0 18px rgba(0,255,255,0.07);
+  color: #fff;
+}
+.lucky-btn-primary:disabled { opacity: 0.35; cursor: default; }
+.lucky-btn-primary[hidden] { display: none !important; }
+
+#lucky-deal-ico {
+  font-size: 15px;
+  animation: lucky-ico-spin 4s linear infinite;
+}
+@keyframes lucky-ico-spin {
+  0%,100% { opacity: 0.65; transform: rotate(0deg); }
+  25%     { opacity: 1;    transform: rotate(90deg); text-shadow: 0 0 8px #00ffff; }
+  50%     { opacity: 0.65; transform: rotate(180deg); }
+  75%     { opacity: 1;    transform: rotate(270deg); text-shadow: 0 0 8px #00ffff; }
+}
+
+.lucky-btn-secondary {
+  padding: 11px 18px;
+  background: rgba(0,255,255,0.05);
+  border: 1px solid rgba(0,255,255,0.24);
+  border-radius: 4px;
+  color: rgba(0,255,255,0.62);
+  font-family: inherit; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  cursor: pointer; transition: background .2s, color .2s;
+}
+.lucky-btn-secondary:hover { background: rgba(0,255,255,0.12); color: #00ffff; }
+.lucky-btn-secondary[hidden] { display: none !important; }
+
+/* Toolbar lucky button */
+#luckyBtn {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 15px; height: 34px;
+  font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(0,255,255,0.88);
+  background: rgba(0,255,255,0.08);
+  border: 1px solid rgba(0,255,255,0.42);
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  cursor: pointer; white-space: nowrap;
+  box-shadow: 0 0 8px rgba(0,255,255,0.10), inset 0 0 10px rgba(0,255,255,0.03);
+  transition: background .18s, color .18s, box-shadow .18s;
+  animation: lucky-btn-breathe 3.2s ease-in-out infinite;
+}
+#luckyBtn:hover {
+  background: rgba(0,255,255,0.16); color: #fff;
+  box-shadow: 0 0 18px rgba(0,255,255,0.28), inset 0 0 14px rgba(0,255,255,0.06);
+  animation: none;
+}
+@keyframes lucky-btn-breathe {
+  0%,100% { border-color: rgba(0,255,255,0.38); box-shadow: 0 0 5px rgba(0,255,255,0.08); }
+  50%     { border-color: rgba(0,255,255,0.70); box-shadow: 0 0 14px rgba(0,255,255,0.22); }
+}
+#lucky-btn-ico {
+  font-size: 14px; line-height: 1;
+  text-shadow: 0 0 6px #00ffff;
+}
+#lucky-btn-lbl { line-height: 1; }
+
+@media (max-width: 600px) {
+  #lucky-modal { padding: 44px 14px 36px; gap: 14px; }
+  #lucky-suits { font-size: 15px; letter-spacing: 0.12em; }
+  #lucky-title-txt { font-size: 18px; letter-spacing: 0.22em; }
+  #lucky-pool-label { font-size: 8px; }
+  /* Carousel arena — taller on mobile so scattered cards have vertical room */
+  #lucky-arena { height: 230px; perspective: 520px; }
+  #lucky-carousel { width: 106px; height: 148px; }
+  .lucky-card { border-radius: 6px; }
+  .lucky-card-inner { border-radius: 6px; }
+  .lucky-card-back, .lucky-card-front { border-radius: 6px; }
+  .lf-title { font-size: 8px; }
+  /* Result panel — horizontal on mobile to save vertical space */
+  #lucky-result-panel {
+    flex-direction: row; align-items: flex-start;
+    text-align: left; gap: 14px;
+  }
+  #lucky-result-info { align-items: flex-start; gap: 6px; }
+  #lucky-result-genre { justify-content: flex-start; }
+  #lucky-result-poster { width: 90px; height: 126px; flex-shrink: 0; }
+  #lucky-result-title { font-size: 15px; letter-spacing: 0.04em; }
+  #lucky-result-meta { font-size: 10px; }
+  #luckyViewBtn { align-self: flex-start; margin-top: 4px; }
+  /* Controls — full-width stacked so they don't crowd */
+  #lucky-controls { flex-direction: column; align-items: center; gap: 8px; }
+  .lucky-btn-primary { width: 100%; max-width: 280px; justify-content: center; }
+  .lucky-btn-secondary { width: 100%; max-width: 280px; text-align: center; }
 }
 
 /* ────────────────────────────────────────────────────────────

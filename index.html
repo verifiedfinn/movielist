@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>THE Movie List</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
 
@@ -71,6 +71,12 @@
       </div>
 
       <div class="p-rule"></div>
+      <div class="p-label">Actions</div>
+      <div class="nav-item" id="navLucky">
+        <span class="n-ico">&#9672;</span> Lucky Draw
+      </div>
+
+      <div class="p-rule"></div>
       <div class="p-label">Sector Data</div>
 
       <div class="stat-row">
@@ -108,6 +114,9 @@
           <button class="fbtn" data-filter="seen">Seen</button>
           <button class="fbtn" data-filter="favorites">Favs</button>
         </div>
+        <button id="luckyBtn" aria-label="Lucky Draw — pick a random movie" title="Pick a random movie">
+          <span id="lucky-btn-ico">◈</span><span id="lucky-btn-lbl">LUCKY</span>
+        </button>
         <button id="refreshBtn" aria-label="Refresh data from sheet" title="Reload data from sheet">⟳</button>
       </div>
 
@@ -161,7 +170,38 @@
   </div>
 </div>
 
-<script src="js/canvas.js"></script>
-<script src="js/app.js"></script>
+<!-- LUCKY DRAW OVERLAY -->
+<div id="lucky-overlay" role="dialog" aria-modal="true" aria-labelledby="lucky-title-txt">
+  <div id="lucky-modal">
+    <button id="luckyClose" aria-label="Close lucky draw">✕</button>
+    <div id="lucky-header">
+      <div id="lucky-suits">♠ &nbsp; ♥ &nbsp; ♦ &nbsp; ♣</div>
+      <div id="lucky-title-txt">LUCKY DRAW</div>
+      <div id="lucky-pool-label"></div>
+    </div>
+    <div id="lucky-arena"></div>
+    <div id="lucky-result-panel" hidden>
+      <div id="lucky-result-poster">
+        <img id="luckyImg" src="" alt="">
+        <div id="lucky-result-no-poster"></div>
+      </div>
+      <div id="lucky-result-info">
+        <div id="lucky-result-title"></div>
+        <div id="lucky-result-meta"></div>
+        <div id="lucky-result-genre"></div>
+        <button id="luckyViewBtn">◈ VIEW DETAILS</button>
+      </div>
+    </div>
+    <div id="lucky-controls">
+      <button id="luckyDealBtn" class="lucky-btn-primary">
+        <span id="lucky-deal-ico">◈</span> DEAL CARDS
+      </button>
+      <button id="luckyAgainBtn" class="lucky-btn-secondary" hidden>⟳ DEAL AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/canvas.js?v=28"></script>
+<script src="js/app.js?v=28"></script>
 </body>
 </html>
