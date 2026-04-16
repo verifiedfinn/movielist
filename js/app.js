@@ -125,33 +125,35 @@
   /* ── Sound + Haptics ── */
   const FX = (() => {
     let ac = null;
+
+    /* ctx() — returns AudioContext (may be suspended on first call) or null.
+       Calls resume() inline so iOS hears the intent even before state flips.
+       Callers must guard: const a = ctx(); if (!a) return; */
     const ctx = () => {
-      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
-      if (ac.state === 'suspended') ac.resume();
-      return ac;
+      try {
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume().catch(() => {});
+        return ac.state !== 'closed' ? ac : null;
+      } catch { return null; }
     };
 
-    /* iOS: unlock AudioContext on first touch (play silent buffer),
-       then resume on every subsequent touch in case iOS re-suspends it
-       (happens after screen sleep, phone call, app switch, etc.) */
-    let _iosUnlocked = false;
-    document.addEventListener('touchstart', () => {
+    /* iOS unlock — must be synchronous inside the gesture callstack.
+       await would move the buffer start outside the gesture, killing iOS unlock.
+       Called on every touchstart/click so re-suspension auto-recovers. */
+    const unlock = () => {
       try {
-        const a = ctx();
-        if (!_iosUnlocked) {
-          _iosUnlocked = true;
-          const buf = a.createBuffer(1, 1, 22050);
-          const src = a.createBufferSource();
-          src.buffer = buf;
-          src.connect(a.destination);
-          src.start(0);
-        } else if (a.state !== 'running') {
-          a.resume();
-        }
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume().catch(() => {});
+        // Start silence buffer synchronously in gesture callstack — iOS requirement
+        const buf = ac.createBuffer(1, 1, ac.sampleRate);
+        const src = ac.createBufferSource();
+        src.buffer = buf; src.connect(ac.destination); src.start(0);
       } catch {}
-    }, { passive: true });
+    };
+    document.addEventListener('touchstart', unlock, { passive: true });
+    document.addEventListener('click',      unlock, { passive: true });
 
-    /* Haptics — vibration API (Android/some browsers; not available on iOS) */
+    /* Haptics — vibration API (Android only; iOS intentionally blocks it) */
     const buzz = pattern => { try { navigator.vibrate?.(pattern); } catch {} };
 
     /* UI click — Tron confirm chirp: rise then settle */

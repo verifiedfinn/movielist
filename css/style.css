@@ -1492,6 +1492,12 @@ html, body {
     min-height: 62px !important;
   }
 
+  /* No translateY on mobile — staggered entry would overlap adjacent rows */
+  @keyframes card-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
 
 
   /* Full-screen modal on mobile */
