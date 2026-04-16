@@ -124,7 +124,8 @@
 
   /* ── Sound + Haptics ── */
   const FX = (() => {
-    let ac = null;
+    let ac  = null;
+    let _sEl = null; // silent <audio> element — see unlock() comment below
 
     /* ctx() — returns the AudioContext as long as it exists and isn't closed.
        Returns it even when 'suspended': iOS schedules audio on a suspended
@@ -143,14 +144,27 @@
     /* iOS unlock — called on touchend AND click so the AudioContext is
        created + resumed inside a user-gesture callstack before any sound fires.
        touchend precedes click by a few ms, giving resume() time to settle.
-       Also covers re-suspension after screen-lock / app-switch. */
+       Also covers re-suspension after screen-lock / app-switch.
+
+       Silent <audio> element trick: playing ANY HTMLAudioElement in a user
+       gesture switches iOS's AVAudioSession category to Playback. That category
+       uses media volume and is NOT muted by the hardware silent switch — the
+       same reason Spotify/YouTube play with the switch on. Without this, Web
+       Audio defaults to the Ambient category which IS muted by the switch. */
     const unlock = () => {
       try {
         if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
         if (ac.state === 'suspended') ac.resume().catch(() => {});
+        // Web Audio silence primer
         const buf = ac.createBuffer(1, 1, ac.sampleRate);
         const src = ac.createBufferSource();
         src.buffer = buf; src.connect(ac.destination); src.start(0);
+        // HTML Audio silence — forces iOS into AVAudioSessionCategoryPlayback
+        if (!_sEl) {
+          _sEl = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+          _sEl.loop = false;
+        }
+        _sEl.play().catch(() => {});
       } catch {}
     };
     document.addEventListener('touchend', unlock, { passive: true });
