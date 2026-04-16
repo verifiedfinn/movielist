@@ -126,32 +126,31 @@
   const FX = (() => {
     let ac = null;
 
-    /* ctx() — returns AudioContext (may be suspended on first call) or null.
-       Calls resume() inline so iOS hears the intent even before state flips.
-       Callers must guard: const a = ctx(); if (!a) return; */
+    /* ctx() — returns the AudioContext only when running, null otherwise.
+       Never calls resume() here — ctx() fires from setTimeout callbacks
+       (non-gesture) and iOS silently rejects resume() outside a user gesture. */
     const ctx = () => {
       try {
-        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
-        if (ac.state === 'suspended') ac.resume().catch(() => {});
-        return ac.state !== 'closed' ? ac : null;
+        if (!ac || ac.state !== 'running') return null;
+        return ac;
       } catch { return null; }
     };
 
-    /* iOS unlock — must be synchronous inside the gesture callstack.
-       await would move the buffer start outside the gesture, killing iOS unlock.
-       Called on every touchstart/click so re-suspension auto-recovers. */
+    /* iOS unlock — synchronous, called from touchend AND click (user gestures).
+       touchend is more reliable than touchstart for iOS AudioContext unlock.
+       resume() + silence buffer covers both iOS 14+ and older unlock paths.
+       Called on re-entry so app-switch/screen-lock suspensions self-recover. */
     const unlock = () => {
       try {
         if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
         if (ac.state === 'suspended') ac.resume().catch(() => {});
-        // Start silence buffer synchronously in gesture callstack — iOS requirement
         const buf = ac.createBuffer(1, 1, ac.sampleRate);
         const src = ac.createBufferSource();
         src.buffer = buf; src.connect(ac.destination); src.start(0);
       } catch {}
     };
-    document.addEventListener('touchstart', unlock, { passive: true });
-    document.addEventListener('click',      unlock, { passive: true });
+    document.addEventListener('touchend', unlock, { passive: true });
+    document.addEventListener('click',    unlock, { passive: true });
 
     /* Haptics — vibration API (Android only; iOS intentionally blocks it) */
     const buzz = pattern => { try { navigator.vibrate?.(pattern); } catch {} };
@@ -1257,7 +1256,11 @@
     setTimeout(() => { if (impact.parentNode) impact.remove(); }, 1300);
 
     /* ── PHASE 5: CASINO SPIN ────────────────────────────────────────── */
-    luckyRadius   = Math.min(215, Math.floor(luckyArena.offsetWidth * 0.37));
+    // Minimum radius so adjacent cards (width = carousel CSS width) don't physically
+    // intersect: arc_spacing = 2π×R/N ≥ cardW → R ≥ N×cardW/(2π)
+    const _cW = window.innerWidth <= 600 ? 90 : 140;
+    const _minR = Math.ceil(LUCKY_CARD_COUNT * _cW / (2 * Math.PI)) + 18;
+    luckyRadius = Math.max(_minR, Math.min(215, Math.floor(luckyArena.offsetWidth * 0.37)));
     luckyCards    = [];
 
     luckyCarousel = document.createElement('div');

@@ -16,8 +16,8 @@
 
   /* ── Config ── */
   const CFG = {
-    desktop: { count: 68, bright: 8,  connect: 180, speed: [0.06, 0.22] },
-    mobile:  { count: 34, bright: 4,  connect: 110, speed: [0.05, 0.16] },
+    desktop: { count: 48, bright: 6,  connect: 160, speed: [0.06, 0.20] },
+    mobile:  { count: 28, bright: 3,  connect: 100, speed: [0.05, 0.15] },
   };
 
   let particles = [];
@@ -25,9 +25,17 @@
 
   /* ── Resize ── */
   function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    W = window.innerWidth;
+    H = window.innerHeight;
     mobile = W < 900;
+    /* Cap at 1× — background canvas doesn't need retina sharpness,
+       and 2× doubles the pixel area the GPU must process each frame. */
+    const dpr = Math.min(window.devicePixelRatio || 1, 1);
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     init();
   }
 
@@ -177,15 +185,17 @@
       ctx.lineTo(hx, hy);
       ctx.stroke();
 
-      /* head spark */
-      ctx.save();
-      ctx.shadowColor = '#00ffff';
-      ctx.shadowBlur  = mobile ? 8 : 14;
-      ctx.fillStyle   = `rgba(200,255,255,${0.9 * (1 - pu.t * 0.4)})`;
+      /* head spark — radial gradient instead of shadowBlur */
+      const sparkA = 0.9 * (1 - pu.t * 0.4);
+      const sparkR = mobile ? 7 : 11;
+      const sg = ctx.createRadialGradient(hx, hy, 0, hx, hy, sparkR);
+      sg.addColorStop(0,   `rgba(220,255,255,${sparkA})`);
+      sg.addColorStop(0.3, `rgba(0,255,255,${sparkA * 0.6})`);
+      sg.addColorStop(1,   'transparent');
+      ctx.fillStyle = sg;
       ctx.beginPath();
-      ctx.arc(hx, hy, 2, 0, Math.PI * 2);
+      ctx.arc(hx, hy, sparkR, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
 
     /* ── particles ── */
@@ -205,15 +215,15 @@
         ctx.arc(p.x, p.y, p.r * 8, 0, Math.PI * 2);
         ctx.fill();
 
-        /* inner glow */
-        ctx.save();
-        ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur  = 10 * pulse;
-        ctx.fillStyle   = `rgba(180,245,255,${a})`;
+        /* inner glow — radial gradient replaces shadowBlur (no separate GPU blur pass) */
+        const inner = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3.5);
+        inner.addColorStop(0,   `rgba(200,255,255,${a})`);
+        inner.addColorStop(0.4, `rgba(0,220,255,${a * 0.7})`);
+        inner.addColorStop(1,   'transparent');
+        ctx.fillStyle = inner;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.r * 3.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
       } else {
         ctx.fillStyle = `rgba(0,200,255,${a})`;
         ctx.beginPath();

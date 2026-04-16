@@ -14,31 +14,23 @@
   --glass:  rgba(0, 8, 16, 0.82);
   --glass2: rgba(0, 4, 10, 0.90);
 
-  /* Layered neon glow for text/borders */
+  /* Layered neon glow for text/borders — 2 shadows max for GPU performance */
   --neon:
-    0 0 1px  #fff,
-    0 0 6px  #00ffff,
-    0 0 20px #00ffff,
-    0 0 55px rgba(0,255,255,0.28);
+    0 0 2px  rgba(255,255,255,0.9),
+    0 0 12px #00ffff;
 
   --neon-am:
-    0 0 1px  #fff,
-    0 0 6px  #ffb300,
-    0 0 20px #ffb300,
-    0 0 55px rgba(255,179,0,0.28);
+    0 0 2px  rgba(255,255,255,0.9),
+    0 0 12px #ffb300;
 
-  /* Drop-shadow traces clip-path edges — use on panels */
+  /* Drop-shadow traces clip-path edges — 2 layers, no giant outer bloom */
   --glow:
-    drop-shadow(0 0 1px rgba(255,255,255,0.7))
-    drop-shadow(0 0 6px #00ffff)
-    drop-shadow(0 0 18px #00ffff)
-    drop-shadow(0 0 45px rgba(0,255,255,0.32));
+    drop-shadow(0 0 1px rgba(255,255,255,0.8))
+    drop-shadow(0 0 7px rgba(0,255,255,0.85));
 
   --glow-am:
-    drop-shadow(0 0 1px rgba(255,255,255,0.7))
-    drop-shadow(0 0 6px #ffb300)
-    drop-shadow(0 0 18px #ffb300)
-    drop-shadow(0 0 45px rgba(255,179,0,0.32));
+    drop-shadow(0 0 1px rgba(255,255,255,0.8))
+    drop-shadow(0 0 7px rgba(255,179,0,0.85));
 }
 
 html, body {
@@ -229,9 +221,9 @@ html, body {
   display: flex; flex-direction: column;
 
   clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
-  background: rgba(0, 8, 20, 0.55);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  background: rgba(0, 8, 20, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(0,255,255,0.65);
 
   box-shadow:
@@ -328,9 +320,9 @@ html, body {
     calc(100% - 26px) 100%, 26px 100%,
     0% calc(100% - 26px), 0% 26px
   );
-  background: rgba(0, 6, 16, 0.45);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 6, 16, 0.68);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   border: 1px solid rgba(0,255,255,0.50);
 
   box-shadow:
@@ -357,9 +349,9 @@ html, body {
   padding: 0 20px;
   height: 54px;
   border-bottom: 1px solid rgba(0,255,255,0.14);
-  background: rgba(0, 0, 0, 0.20);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.40);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 #filter-scroll {
@@ -560,6 +552,7 @@ html, body {
   transition: box-shadow .28s, transform .24s cubic-bezier(0.2,0,0,1), border-color .24s;
   animation: card-in 0.4s cubic-bezier(0.2, 0, 0, 1) both;
   animation-delay: calc(var(--i, 0) * 55ms);
+  will-change: transform, opacity;
 }
 @keyframes card-in {
   from { opacity: 0; transform: translateY(20px); }
@@ -610,6 +603,7 @@ html, body {
   background-size: cover; background-position: center top;
   filter: brightness(0.72) saturate(0.65) contrast(1.08);
   transition: filter .40s, transform .45s cubic-bezier(0.2,0,0,1);
+  will-change: transform;
 }
 .card:hover .card-bg {
   filter: brightness(0.92) saturate(0.85) contrast(1.04);
@@ -1889,9 +1883,9 @@ a, button, [role="button"], [tabindex] {
      scrolls from the top when content is taller than viewport. Using
      align-items: center would break scrollability on short/landscape screens. */
   display: flex; flex-direction: column;
-  background: rgba(0, 2, 10, 0.92);
-  backdrop-filter: blur(18px) saturate(0.55);
-  -webkit-backdrop-filter: blur(18px) saturate(0.55);
+  background: rgba(0, 2, 10, 0.96);
+  backdrop-filter: blur(8px) saturate(0.55);
+  -webkit-backdrop-filter: blur(8px) saturate(0.55);
   opacity: 0; pointer-events: none;
   transition: opacity 0.35s;
   overflow-y: auto;
@@ -2411,7 +2405,7 @@ a, button, [role="button"], [tabindex] {
   #lucky-pool-label { font-size: 8px; }
   /* Carousel arena — taller on mobile so scattered cards have vertical room */
   #lucky-arena { height: 230px; perspective: 520px; }
-  #lucky-carousel { width: 106px; height: 148px; }
+  #lucky-carousel { width: 90px; height: 126px; }
   .lucky-card { border-radius: 6px; }
   .lucky-card-inner { border-radius: 6px; }
   .lucky-card-back, .lucky-card-front { border-radius: 6px; }
