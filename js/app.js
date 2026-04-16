@@ -131,22 +131,25 @@
       return ac;
     };
 
-    /* iOS requires AudioContext to be created + a silent buffer played
-       inside a real user-gesture handler. Do this once on first touch. */
-    const unlockiOS = () => {
+    /* iOS: unlock AudioContext on first touch (play silent buffer),
+       then resume on every subsequent touch in case iOS re-suspends it
+       (happens after screen sleep, phone call, app switch, etc.) */
+    let _iosUnlocked = false;
+    document.addEventListener('touchstart', () => {
       try {
         const a = ctx();
-        const buf = a.createBuffer(1, 1, 22050);
-        const src = a.createBufferSource();
-        src.buffer = buf;
-        src.connect(a.destination);
-        src.start(0);
+        if (!_iosUnlocked) {
+          _iosUnlocked = true;
+          const buf = a.createBuffer(1, 1, 22050);
+          const src = a.createBufferSource();
+          src.buffer = buf;
+          src.connect(a.destination);
+          src.start(0);
+        } else if (a.state !== 'running') {
+          a.resume();
+        }
       } catch {}
-      document.removeEventListener('touchstart', unlockiOS);
-      document.removeEventListener('touchend',   unlockiOS);
-    };
-    document.addEventListener('touchstart', unlockiOS, { once: true, passive: true });
-    document.addEventListener('touchend',   unlockiOS, { once: true, passive: true });
+    }, { passive: true });
 
     /* Haptics — vibration API (Android/some browsers; not available on iOS) */
     const buzz = pattern => { try { navigator.vibrate?.(pattern); } catch {} };
@@ -1117,14 +1120,15 @@
     kfStyle.textContent = kfText;
     document.head.appendChild(kfStyle);
 
+    const isMobile = navigator.maxTouchPoints > 0;
     const scatterCards = luckyCards.slice();
     luckyCards.forEach((c, i) => {
       const delay = i * STAGGER_MS;
       c.style.transition = 'none';
-      // Two simultaneous animations: position/flip path + Tron glow envelope
-      c.style.animation  =
-        `lk${i} ${TOTAL_DUR}ms ${delay}ms linear forwards,` +
-        `lk-glow${i} ${TOTAL_DUR}ms ${delay}ms linear forwards`;
+      // On mobile skip the drop-shadow glow animation — it's GPU-heavy and causes lag
+      c.style.animation = isMobile
+        ? `lk${i} ${TOTAL_DUR}ms ${delay}ms linear forwards`
+        : `lk${i} ${TOTAL_DUR}ms ${delay}ms linear forwards,lk-glow${i} ${TOTAL_DUR}ms ${delay}ms linear forwards`;
     });
 
     // Card launch sounds — fire as each card bursts outward
@@ -1314,12 +1318,13 @@
         const p = (k * ANGLE_PER_CARD) / spinTarget;
         if (p >= 0.998) break;
         const tickMs = Math.round(bezTimeAt(p) * 6000);
-        // Skip if too close to the last fired tick (fast spin)
-        if (tickMs - lastFiredMs < 38) continue;
+        // Skip if too close to the last fired tick — higher threshold on mobile
+        const minGap = isMobile ? 90 : 38;
+        if (tickMs - lastFiredMs < minGap) continue;
         const interval = tickMs - lastFiredMs;
         lastFiredMs = tickMs;
-        // speed 1.0 = fastest audible (38ms apart), 0.0 = nearly stopped (400ms+)
-        const speed = Math.min(1, Math.max(0, 1 - (interval - 38) / 362));
+        // speed 1.0 = fastest audible, 0.0 = nearly stopped
+        const speed = Math.min(1, Math.max(0, 1 - (interval - minGap) / (400 - minGap)));
         const cMs = tickMs, cSpd = speed;
         setTimeout(() => {
           if (luckyDealGen !== myGen) return;
