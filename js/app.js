@@ -126,20 +126,24 @@
   const FX = (() => {
     let ac = null;
 
-    /* ctx() — returns the AudioContext only when running, null otherwise.
-       Never calls resume() here — ctx() fires from setTimeout callbacks
-       (non-gesture) and iOS silently rejects resume() outside a user gesture. */
+    /* ctx() — returns the AudioContext as long as it exists and isn't closed.
+       Returns it even when 'suspended': iOS schedules audio on a suspended
+       context and plays it as soon as resume() resolves — which happens within
+       a few ms of the preceding touchend/click that called unlock().
+       Checking state === 'running' was the bug: resume() is async, so the click
+       handler fires before the state flips, ctx() returned null, and the sound
+       was silently dropped every time. */
     const ctx = () => {
       try {
-        if (!ac || ac.state !== 'running') return null;
+        if (!ac || ac.state === 'closed') return null;
         return ac;
       } catch { return null; }
     };
 
-    /* iOS unlock — synchronous, called from touchend AND click (user gestures).
-       touchend is more reliable than touchstart for iOS AudioContext unlock.
-       resume() + silence buffer covers both iOS 14+ and older unlock paths.
-       Called on re-entry so app-switch/screen-lock suspensions self-recover. */
+    /* iOS unlock — called on touchend AND click so the AudioContext is
+       created + resumed inside a user-gesture callstack before any sound fires.
+       touchend precedes click by a few ms, giving resume() time to settle.
+       Also covers re-suspension after screen-lock / app-switch. */
     const unlock = () => {
       try {
         if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -155,10 +159,15 @@
     /* Haptics — vibration API (Android only; iOS intentionally blocks it) */
     const buzz = pattern => { try { navigator.vibrate?.(pattern); } catch {} };
 
+    /* Safe time offset: schedule 15ms ahead so audio is always in the future
+       even when ctx was suspended and currentTime is 0. 15ms is imperceptible
+       but safely longer than the ~1-5ms iOS needs to resolve resume(). */
+    const t0 = a => (a.currentTime || 0) + 0.015;
+
     /* UI click — Tron confirm chirp: rise then settle */
     function click() {
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
         const o1 = a.createOscillator(), g1 = a.createGain();
         o1.connect(g1); g1.connect(a.destination);
         o1.type = 'triangle';
@@ -186,7 +195,7 @@
     /* Card burst out — paper swoosh with Tron digital edge */
     function cardLaunch(i) {
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
         // Noise burst — the paper texture (broadband noise, bandpass filtered)
         const bufLen = Math.ceil(a.sampleRate * 0.072);
         const buf    = a.createBuffer(1, bufLen, a.sampleRate);
@@ -223,7 +232,7 @@
     /* Card reveal — happy major-key jackpot: C major arpeggio → bright cling */
     function reveal() {
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
 
         // C major arpeggio ascending — C4 E4 G4 C5 E5 G5
         // Pure sine for clean bell/chime tone, not buzzy
@@ -319,7 +328,7 @@
     /* Carousel tick — hard mechanical snap, no musical ring */
     function carouselTick(speed) { // speed: 1.0=fast, 0.0=nearly stopped
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
 
         // Contact noise — the click itself, very short and dry
         const nLen = Math.ceil(a.sampleRate * 0.006);
@@ -375,7 +384,7 @@
     /* Settle — heavy mechanical lock as wheel bounces to a stop */
     function settle() {
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
         // Deep thunk
         const o1 = a.createOscillator(), g1 = a.createGain();
         o1.connect(g1); g1.connect(a.destination);
@@ -403,7 +412,7 @@
     /* Card vortex hit — digital crunch ping */
     function tap() {
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
         // Main descend with triangle warmth
         const o1 = a.createOscillator(), g1 = a.createGain();
         o1.connect(g1); g1.connect(a.destination);
@@ -441,7 +450,7 @@
     /* Lucky draw implosion — cinematic Tron de-rez */
     function impact() {
       try {
-        const a = ctx(), t = a.currentTime;
+        const a = ctx(), t = t0(a);
         // Sub-bass punch — hard fast attack
         const o1 = a.createOscillator(), g1 = a.createGain();
         o1.connect(g1); g1.connect(a.destination);
