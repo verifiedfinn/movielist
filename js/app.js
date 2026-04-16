@@ -130,6 +130,25 @@
       if (ac.state === 'suspended') ac.resume();
       return ac;
     };
+
+    /* iOS requires AudioContext to be created + a silent buffer played
+       inside a real user-gesture handler. Do this once on first touch. */
+    const unlockiOS = () => {
+      try {
+        const a = ctx();
+        const buf = a.createBuffer(1, 1, 22050);
+        const src = a.createBufferSource();
+        src.buffer = buf;
+        src.connect(a.destination);
+        src.start(0);
+      } catch {}
+      document.removeEventListener('touchstart', unlockiOS);
+      document.removeEventListener('touchend',   unlockiOS);
+    };
+    document.addEventListener('touchstart', unlockiOS, { once: true, passive: true });
+    document.addEventListener('touchend',   unlockiOS, { once: true, passive: true });
+
+    /* Haptics — vibration API (Android/some browsers; not available on iOS) */
     const buzz = pattern => { try { navigator.vibrate?.(pattern); } catch {} };
 
     /* UI click — Tron confirm chirp: rise then settle */
@@ -197,37 +216,155 @@
       buzz(2);
     }
 
-    /* Carousel tick — hard mechanical ratchet clack, speed-tracked */
-    function carouselTick(speed) { // speed: 1.0=fast spin, 0.0=nearly stopped
+    /* Card reveal — happy major-key jackpot: C major arpeggio → bright cling */
+    function reveal() {
       try {
         const a = ctx(), t = a.currentTime;
-        // Noise burst — highpass so most energy gets through (not narrow bandpass)
-        const clickLen = Math.ceil(a.sampleRate * 0.018);
-        const cbuf     = a.createBuffer(1, clickLen, a.sampleRate);
-        const cdata    = cbuf.getChannelData(0);
-        for (let j = 0; j < clickLen; j++) cdata[j] = Math.random() * 2 - 1;
-        const cns = a.createBufferSource();
-        cns.buffer = cbuf;
+
+        // C major arpeggio ascending — C4 E4 G4 C5 E5 G5
+        // Pure sine for clean bell/chime tone, not buzzy
+        const C4=261.6, E4=329.6, G4=392.0, C5=523.3, E5=659.3, G5=784.0;
+        const notes = [C4, E4, G4, C5, E5, G5];
+        const step  = 0.075; // 75ms between notes
+
+        notes.forEach((freq, i) => {
+          const d = i * step;
+          // Main bell body
+          const o = a.createOscillator(), g = a.createGain();
+          o.connect(g); g.connect(a.destination);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(freq, t + d);
+          g.gain.setValueAtTime(0.0001, t + d);
+          g.gain.linearRampToValueAtTime(0.14 + i * 0.012, t + d + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.22);
+          o.start(t + d); o.stop(t + d + 0.23);
+
+          // Overtone — gives it the "cling" metallic ring (2× freq)
+          const o2 = a.createOscillator(), g2 = a.createGain();
+          o2.connect(g2); g2.connect(a.destination);
+          o2.type = 'sine';
+          o2.frequency.setValueAtTime(freq * 2, t + d);
+          g2.gain.setValueAtTime(0.0001, t + d);
+          g2.gain.linearRampToValueAtTime(0.040 + i * 0.004, t + d + 0.003);
+          g2.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.12);
+          o2.start(t + d); o2.stop(t + d + 0.13);
+
+          // Sharp click transient — the actual "cling" attack
+          const o3 = a.createOscillator(), g3 = a.createGain();
+          o3.connect(g3); g3.connect(a.destination);
+          o3.type = 'triangle';
+          o3.frequency.setValueAtTime(freq * 5, t + d);
+          o3.frequency.exponentialRampToValueAtTime(freq * 2.5, t + d + 0.012);
+          g3.gain.setValueAtTime(0.0001, t + d);
+          g3.gain.linearRampToValueAtTime(0.055, t + d + 0.001);
+          g3.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.012);
+          o3.start(t + d); o3.stop(t + d + 0.013);
+        });
+
+        // Big finish chord — lands after last note (5 × 75ms = 375ms)
+        // C major triad: C5 + E5 + G5, all ring together
+        const fin = notes.length * step; // 0.450s
+        [[C5, 0.22], [E5, 0.18], [G5, 0.14]].forEach(([freq, vol]) => {
+          const of = a.createOscillator(), gf = a.createGain();
+          of.connect(gf); gf.connect(a.destination);
+          of.type = 'sine';
+          of.frequency.setValueAtTime(freq, t + fin);
+          gf.gain.setValueAtTime(0.0001, t + fin);
+          gf.gain.linearRampToValueAtTime(vol, t + fin + 0.008);
+          gf.gain.exponentialRampToValueAtTime(0.0001, t + fin + 0.55);
+          of.start(t + fin); of.stop(t + fin + 0.56);
+        });
+
+        // Sub warmth under the final chord — not boomy, just full
+        const os = a.createOscillator(), gs = a.createGain();
+        os.connect(gs); gs.connect(a.destination);
+        os.type = 'sine';
+        os.frequency.setValueAtTime(C4, t + fin);
+        os.frequency.exponentialRampToValueAtTime(C4 * 0.5, t + fin + 0.30);
+        gs.gain.setValueAtTime(0.0001, t + fin);
+        gs.gain.linearRampToValueAtTime(0.30, t + fin + 0.006);
+        gs.gain.exponentialRampToValueAtTime(0.0001, t + fin + 0.30);
+        os.start(t + fin); os.stop(t + fin + 0.31);
+
+        // Bright high sparkle — G7, rings into the chord
+        const oh = a.createOscillator(), gh = a.createGain();
+        oh.connect(gh); gh.connect(a.destination);
+        oh.type = 'sine';
+        oh.frequency.setValueAtTime(G5 * 4, t + fin); // ~3136Hz
+        gh.gain.setValueAtTime(0.0001, t + fin);
+        gh.gain.linearRampToValueAtTime(0.072, t + fin + 0.004);
+        gh.gain.exponentialRampToValueAtTime(0.0001, t + fin + 0.38);
+        oh.start(t + fin); oh.stop(t + fin + 0.39);
+
+        // Final cling — one last high ping 80ms after the chord, the exclamation point
+        const oc = a.createOscillator(), gc = a.createGain();
+        oc.connect(gc); gc.connect(a.destination);
+        oc.type = 'sine';
+        oc.frequency.setValueAtTime(C5 * 4, t + fin + 0.08); // C8 ~2093Hz × 4 = 8372Hz-ish, use C6 = 1047Hz
+        oc.frequency.setValueAtTime(1047, t + fin + 0.08);
+        oc.frequency.exponentialRampToValueAtTime(900, t + fin + 0.32);
+        gc.gain.setValueAtTime(0.0001, t + fin + 0.08);
+        gc.gain.linearRampToValueAtTime(0.095, t + fin + 0.085);
+        gc.gain.exponentialRampToValueAtTime(0.0001, t + fin + 0.32);
+        oc.start(t + fin + 0.08); oc.stop(t + fin + 0.33);
+
+      } catch {}
+      buzz([5,8,5,8,5,8,5,8,5,8,5,28,12,20]);
+    }
+
+    /* Carousel tick — hard mechanical snap, no musical ring */
+    function carouselTick(speed) { // speed: 1.0=fast, 0.0=nearly stopped
+      try {
+        const a = ctx(), t = a.currentTime;
+
+        // Contact noise — the click itself, very short and dry
+        const nLen = Math.ceil(a.sampleRate * 0.006);
+        const nbuf = a.createBuffer(1, nLen, a.sampleRate);
+        const nd   = nbuf.getChannelData(0);
+        for (let j = 0; j < nLen; j++) nd[j] = Math.random() * 2 - 1;
+        const ns = a.createBufferSource();
+        ns.buffer = nbuf;
         const hp = a.createBiquadFilter();
-        hp.type            = 'highpass';
-        hp.frequency.value = 500;
-        const cg = a.createGain();
-        cns.connect(hp); hp.connect(cg); cg.connect(a.destination);
-        cg.gain.setValueAtTime(0.44 + speed * 0.18, t); // 0.44–0.62
-        cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.016);
-        cns.start(t); cns.stop(t + 0.018);
-        // Square body — hard mechanical snap
-        const hz  = 240 + speed * 360; // 240Hz (slow) → 600Hz (fast)
-        const dur = 0.014 + (1 - speed) * 0.025;
-        const o1  = a.createOscillator(), g1 = a.createGain();
+        hp.type = 'highpass'; hp.frequency.value = 1800;
+        const ng = a.createGain();
+        ns.connect(hp); hp.connect(ng); ng.connect(a.destination);
+        ng.gain.setValueAtTime(0.55 + speed * 0.25, t); // 0.55–0.80
+        ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.005);
+        ns.start(t); ns.stop(t + 0.006);
+
+        // Body snap — square, dies in ≤12ms, zero sustain
+        const hz = 300 + speed * 500; // 300Hz (slow) → 800Hz (fast)
+        const o1 = a.createOscillator(), g1 = a.createGain();
         o1.connect(g1); g1.connect(a.destination);
         o1.type = 'square';
         o1.frequency.setValueAtTime(hz, t);
-        o1.frequency.exponentialRampToValueAtTime(hz * 0.38, t + dur);
+        o1.frequency.exponentialRampToValueAtTime(hz * 0.30, t + 0.010);
         g1.gain.setValueAtTime(0.0001, t);
-        g1.gain.linearRampToValueAtTime(0.20 + speed * 0.08, t + 0.0008); // 0.20–0.28
-        g1.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o1.start(t); o1.stop(t + dur + 0.002);
+        g1.gain.linearRampToValueAtTime(0.22 + speed * 0.10, t + 0.0005);
+        g1.gain.exponentialRampToValueAtTime(0.0001, t + 0.010);
+        o1.start(t); o1.stop(t + 0.011);
+
+        // Low body thump — physical ratchet weight, gives it mechanical mass
+        const o2 = a.createOscillator(), g2 = a.createGain();
+        o2.connect(g2); g2.connect(a.destination);
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime(110 + speed * 70, t); // 110-180Hz
+        o2.frequency.exponentialRampToValueAtTime(38, t + 0.013);
+        g2.gain.setValueAtTime(0.0001, t);
+        g2.gain.linearRampToValueAtTime(0.30 + speed * 0.12, t + 0.001);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.013);
+        o2.start(t); o2.stop(t + 0.014);
+
+        // Tron ting — brief high triangle sweep, ties tick to the overall sound palette
+        const o3 = a.createOscillator(), g3 = a.createGain();
+        o3.connect(g3); g3.connect(a.destination);
+        o3.type = 'triangle';
+        o3.frequency.setValueAtTime(2200 + speed * 1400, t); // 2200-3600Hz
+        o3.frequency.exponentialRampToValueAtTime(900 + speed * 400, t + 0.018);
+        g3.gain.setValueAtTime(0.0001, t);
+        g3.gain.linearRampToValueAtTime(0.038 + speed * 0.018, t + 0.001);
+        g3.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+        o3.start(t); o3.stop(t + 0.019);
       } catch {}
     }
 
@@ -365,7 +502,7 @@
       buzz([22, 30, 14]);
     }
 
-    return { click, cardLaunch, carouselTick, settle, tap, impact };
+    return { click, cardLaunch, carouselTick, settle, reveal, tap, impact };
   })();
 
   /* ── Loading overlay ── */
@@ -444,7 +581,7 @@
 
   /* Wire filter controls — sidebar divs and toolbar buttons */
   document.querySelectorAll('[data-filter]').forEach(el => {
-    el.addEventListener('click', () => { FX.click(); setFilter(el.dataset.filter); });
+    el.addEventListener('click', () => { setFilter(el.dataset.filter); });
     /* Keyboard access for non-button filter items */
     if (el.tagName !== 'BUTTON') {
       el.setAttribute('tabindex', '0');
@@ -629,7 +766,7 @@
       }
     }
 
-    card.addEventListener('click', () => openDetail(m));
+    card.addEventListener('click', () => { openDetail(m); });
     card.addEventListener('keydown', e => {
       if (e.key === 'Enter') openDetail(m);
     });
@@ -1242,6 +1379,7 @@
     /* ── PHASE 9: FLIP + FLASH ────────────────────────────────────── */
     winnerCard.style.filter = '';
     winnerCard.classList.add('flipped');
+    FX.reveal();
 
     const flash = document.createElement('div');
     flash.className = 'lucky-flash';

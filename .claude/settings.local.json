@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(grep -o '\"content\":\\\\[{\"type\":\"text\",\"text\":\"[^\"]*\"' f968a1e3-da53-4b97-adce-f03a2ae967c0.jsonl)",
+      "Bash(ls -la *.jsonl)",
+      "Bash(sort -k6,7)"
     ]
   }
 }
