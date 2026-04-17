@@ -128,24 +128,26 @@
     let _sEl    = null;   // fallback silent loop for older iOS
     let _msInit = false;  // whether media-session route has been set up
 
-    /* Build a proper silent WAV blob URL (1 s, 8-bit PCM, 8 kHz, mono).
-       A 0-sample WAV doesn't register as "playing" on some iOS versions;
-       a real-duration looping file keeps the AVAudioSession alive. */
+    /* Silent WAV as a base64 data URL (1 s, 8-bit PCM, 8 kHz, mono).
+       Data URL instead of blob URL — iOS Safari handles these more reliably
+       for media elements used to switch AVAudioSessionCategoryPlayback. */
     const _silentUrl = (() => {
       try {
-        const rate = 8000, n = rate; // 1 second
+        const rate = 8000, n = rate;
         const ab = new ArrayBuffer(44 + n);
         const v  = new DataView(ab);
         const b  = new Uint8Array(ab);
-        b.set([82,73,70,70]);          v.setUint32(4,  36 + n, true); // RIFF
-        b.set([87,65,86,69], 8);                                       // WAVE
-        b.set([102,109,116,32], 12);   v.setUint32(16, 16,    true);  // fmt
-        v.setUint16(20,1,true); v.setUint16(22,1,true);               // PCM mono
-        v.setUint32(24,rate,true); v.setUint32(28,rate,true);         // rates
-        v.setUint16(32,1,true); v.setUint16(34,8,true);               // align/bits
-        b.set([100,97,116,97], 36);    v.setUint32(40, n, true);      // data
-        b.fill(128, 44);               // 8-bit silence = midpoint 0x80
-        return URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+        b.set([82,73,70,70]);          v.setUint32(4,  36 + n, true);
+        b.set([87,65,86,69], 8);
+        b.set([102,109,116,32], 12);   v.setUint32(16, 16,    true);
+        v.setUint16(20,1,true); v.setUint16(22,1,true);
+        v.setUint32(24,rate,true); v.setUint32(28,rate,true);
+        v.setUint16(32,1,true); v.setUint16(34,8,true);
+        b.set([100,97,116,97], 36);    v.setUint32(40, n, true);
+        b.fill(128, 44);
+        let s = '';
+        b.forEach(x => s += String.fromCharCode(x));
+        return 'data:audio/wav;base64,' + btoa(s);
       } catch { return null; }
     })();
 
