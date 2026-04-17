@@ -124,16 +124,34 @@
 
   /* ── Sound + Haptics ── */
   const FX = (() => {
-    let ac  = null;
-    let _sEl = null; // silent <audio> element — see unlock() comment below
+    let ac      = null;
+    let _sEl    = null;   // fallback silent loop for older iOS
+    let _msInit = false;  // whether media-session route has been set up
+
+    /* Build a proper silent WAV blob URL (1 s, 8-bit PCM, 8 kHz, mono).
+       A 0-sample WAV doesn't register as "playing" on some iOS versions;
+       a real-duration looping file keeps the AVAudioSession alive. */
+    const _silentUrl = (() => {
+      try {
+        const rate = 8000, n = rate; // 1 second
+        const ab = new ArrayBuffer(44 + n);
+        const v  = new DataView(ab);
+        const b  = new Uint8Array(ab);
+        b.set([82,73,70,70]);          v.setUint32(4,  36 + n, true); // RIFF
+        b.set([87,65,86,69], 8);                                       // WAVE
+        b.set([102,109,116,32], 12);   v.setUint32(16, 16,    true);  // fmt
+        v.setUint16(20,1,true); v.setUint16(22,1,true);               // PCM mono
+        v.setUint32(24,rate,true); v.setUint32(28,rate,true);         // rates
+        v.setUint16(32,1,true); v.setUint16(34,8,true);               // align/bits
+        b.set([100,97,116,97], 36);    v.setUint32(40, n, true);      // data
+        b.fill(128, 44);               // 8-bit silence = midpoint 0x80
+        return URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+      } catch { return null; }
+    })();
 
     /* ctx() — returns the AudioContext as long as it exists and isn't closed.
-       Returns it even when 'suspended': iOS schedules audio on a suspended
-       context and plays it as soon as resume() resolves — which happens within
-       a few ms of the preceding touchend/click that called unlock().
-       Checking state === 'running' was the bug: resume() is async, so the click
-       handler fires before the state flips, ctx() returned null, and the sound
-       was silently dropped every time. */
+       Returns even when 'suspended': iOS plays audio scheduled on a suspended
+       context once resume() resolves (a few ms after the preceding gesture). */
     const ctx = () => {
       try {
         if (!ac || ac.state === 'closed') return null;
@@ -141,30 +159,42 @@
       } catch { return null; }
     };
 
-    /* iOS unlock — called on touchend AND click so the AudioContext is
-       created + resumed inside a user-gesture callstack before any sound fires.
-       touchend precedes click by a few ms, giving resume() time to settle.
-       Also covers re-suspension after screen-lock / app-switch.
+    /* initMediaRoute — called once, inside a user gesture, after AudioContext is created.
+       Playing a looping <audio> element during a gesture switches iOS's AVAudioSession
+       to Playback category, which bypasses the hardware silent switch.
+       Rules that matter on iOS Safari:
+         • element must be in the DOM
+         • must have playsinline (otherwise Safari may refuse autoplay or go fullscreen)
+         • must NOT be muted (volume=0 counts as muted on some iOS versions)
+         • the WAV data itself is silence, so no audible output despite volume=1
+         • must be started from inside the gesture callstack (we're called from unlock()) */
+    const initMediaRoute = (a) => {
+      if (_msInit || !_silentUrl) return;
+      _msInit = true;
+      _sEl = document.createElement('audio');
+      _sEl.src = _silentUrl;
+      _sEl.loop = true;
+      _sEl.volume = 1;                        // NOT muted — iOS checks this
+      _sEl.setAttribute('playsinline', '');
+      _sEl.setAttribute('webkit-playsinline', '');
+      _sEl.style.cssText = 'position:fixed;width:0;height:0;opacity:0;pointer-events:none';
+      document.body.appendChild(_sEl);        // must be in DOM
+      _sEl.play().catch(() => {});
+    };
 
-       Silent <audio> element trick: playing ANY HTMLAudioElement in a user
-       gesture switches iOS's AVAudioSession category to Playback. That category
-       uses media volume and is NOT muted by the hardware silent switch — the
-       same reason Spotify/YouTube play with the switch on. Without this, Web
-       Audio defaults to the Ambient category which IS muted by the switch. */
+    /* unlock — touchend + click so the AC is created/resumed in a gesture.
+       Also (re)starts the silent loop so the session stays alive after
+       screen-lock, app-switch, or phone-call interruptions. */
     const unlock = () => {
       try {
         if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
         if (ac.state === 'suspended') ac.resume().catch(() => {});
-        // Web Audio silence primer
+        initMediaRoute(ac);
+        if (_sEl && _sEl.paused) _sEl.play().catch(() => {});
+        // Web Audio silence primer — belt-and-suspenders context unlock
         const buf = ac.createBuffer(1, 1, ac.sampleRate);
         const src = ac.createBufferSource();
         src.buffer = buf; src.connect(ac.destination); src.start(0);
-        // HTML Audio silence — forces iOS into AVAudioSessionCategoryPlayback
-        if (!_sEl) {
-          _sEl = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-          _sEl.loop = false;
-        }
-        _sEl.play().catch(() => {});
       } catch {}
     };
     document.addEventListener('touchend', unlock, { passive: true });
@@ -339,60 +369,58 @@
       buzz([5,8,5,8,5,8,5,8,5,8,5,28,12,20]);
     }
 
-    /* Carousel tick — hard mechanical snap, no musical ring */
+    /* Carousel tick — coin-slot / ratchet mechanical click.
+       Real mechanical clicks are noise-based not oscillator-based.
+       Three layers: surface snap (high noise), body clack (bandpass noise),
+       weight thump (short sine). No square waves, no sweeping tones. */
     function carouselTick(speed) { // speed: 1.0=fast, 0.0=nearly stopped
       try {
         const a = ctx(), t = t0(a);
 
-        // Contact noise — the click itself, very short and dry
-        const nLen = Math.ceil(a.sampleRate * 0.006);
-        const nbuf = a.createBuffer(1, nLen, a.sampleRate);
-        const nd   = nbuf.getChannelData(0);
-        for (let j = 0; j < nLen; j++) nd[j] = Math.random() * 2 - 1;
-        const ns = a.createBufferSource();
-        ns.buffer = nbuf;
-        const hp = a.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = 1800;
-        const ng = a.createGain();
-        ns.connect(hp); hp.connect(ng); ng.connect(a.destination);
-        ng.gain.setValueAtTime(0.55 + speed * 0.25, t); // 0.55–0.80
-        ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.005);
-        ns.start(t); ns.stop(t + 0.006);
+        // Surface snap — very short high-freq noise, the "tick" attack
+        const snapLen = Math.ceil(a.sampleRate * 0.004);
+        const snapBuf = a.createBuffer(1, snapLen, a.sampleRate);
+        const snapDat = snapBuf.getChannelData(0);
+        for (let j = 0; j < snapLen; j++) snapDat[j] = Math.random() * 2 - 1;
+        const snapSrc = a.createBufferSource(); snapSrc.buffer = snapBuf;
+        const snapHp  = a.createBiquadFilter();
+        snapHp.type = 'highpass'; snapHp.frequency.value = 3200;
+        const snapG = a.createGain();
+        snapSrc.connect(snapHp); snapHp.connect(snapG); snapG.connect(a.destination);
+        snapG.gain.setValueAtTime(0.30 + speed * 0.18, t);
+        snapG.gain.exponentialRampToValueAtTime(0.0001, t + 0.003);
+        snapSrc.start(t); snapSrc.stop(t + 0.004);
 
-        // Body snap — square, dies in ≤12ms, zero sustain
-        const hz = 300 + speed * 500; // 300Hz (slow) → 800Hz (fast)
-        const o1 = a.createOscillator(), g1 = a.createGain();
-        o1.connect(g1); g1.connect(a.destination);
-        o1.type = 'square';
-        o1.frequency.setValueAtTime(hz, t);
-        o1.frequency.exponentialRampToValueAtTime(hz * 0.30, t + 0.010);
-        g1.gain.setValueAtTime(0.0001, t);
-        g1.gain.linearRampToValueAtTime(0.22 + speed * 0.10, t + 0.0005);
-        g1.gain.exponentialRampToValueAtTime(0.0001, t + 0.010);
-        o1.start(t); o1.stop(t + 0.011);
+        // Body clack — bandpass noise around the coin-slot "clack" frequency,
+        // the resonance of metal/plastic in the mechanism
+        const clkLen = Math.ceil(a.sampleRate * 0.009);
+        const clkBuf = a.createBuffer(1, clkLen, a.sampleRate);
+        const clkDat = clkBuf.getChannelData(0);
+        for (let j = 0; j < clkLen; j++) clkDat[j] = Math.random() * 2 - 1;
+        const clkSrc = a.createBufferSource(); clkSrc.buffer = clkBuf;
+        const clkBp  = a.createBiquadFilter();
+        clkBp.type = 'bandpass';
+        clkBp.frequency.value = 1100 + speed * 700; // 1100–1800 Hz
+        clkBp.Q.value = 1.4;
+        const clkG = a.createGain();
+        clkSrc.connect(clkBp); clkBp.connect(clkG); clkG.connect(a.destination);
+        clkG.gain.setValueAtTime(0.36 + speed * 0.15, t);
+        clkG.gain.exponentialRampToValueAtTime(0.0001, t + 0.008);
+        clkSrc.start(t); clkSrc.stop(t + 0.009);
 
-        // Low body thump — physical ratchet weight, gives it mechanical mass
-        const o2 = a.createOscillator(), g2 = a.createGain();
-        o2.connect(g2); g2.connect(a.destination);
-        o2.type = 'sine';
-        o2.frequency.setValueAtTime(110 + speed * 70, t); // 110-180Hz
-        o2.frequency.exponentialRampToValueAtTime(38, t + 0.013);
-        g2.gain.setValueAtTime(0.0001, t);
-        g2.gain.linearRampToValueAtTime(0.30 + speed * 0.12, t + 0.001);
-        g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.013);
-        o2.start(t); o2.stop(t + 0.014);
+        // Weight thump — short sine drop, the physical mass of the ratchet tooth
+        const o = a.createOscillator(), og = a.createGain();
+        o.connect(og); og.connect(a.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(190 + speed * 110, t); // 190–300 Hz
+        o.frequency.exponentialRampToValueAtTime(42, t + 0.013);
+        og.gain.setValueAtTime(0.0001, t);
+        og.gain.linearRampToValueAtTime(0.17 + speed * 0.08, t + 0.0008);
+        og.gain.exponentialRampToValueAtTime(0.0001, t + 0.013);
+        o.start(t); o.stop(t + 0.014);
 
-        // Tron ting — brief high triangle sweep, ties tick to the overall sound palette
-        const o3 = a.createOscillator(), g3 = a.createGain();
-        o3.connect(g3); g3.connect(a.destination);
-        o3.type = 'triangle';
-        o3.frequency.setValueAtTime(2200 + speed * 1400, t); // 2200-3600Hz
-        o3.frequency.exponentialRampToValueAtTime(900 + speed * 400, t + 0.018);
-        g3.gain.setValueAtTime(0.0001, t);
-        g3.gain.linearRampToValueAtTime(0.038 + speed * 0.018, t + 0.001);
-        g3.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
-        o3.start(t); o3.stop(t + 0.019);
       } catch {}
+      buzz(2);
     }
 
     /* Settle — heavy mechanical lock as wheel bounces to a stop */
