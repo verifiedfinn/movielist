@@ -59,11 +59,13 @@
       const vals = splitCSVRow(line);
       const row  = {};
       headers.forEach((h, i) => { row[h] = (vals[i] || '').trim(); });
-      const favRaw = (row.favorite || '').toLowerCase();
+      const favRaw  = (row.favorite || '').toLowerCase();
+      const seenRaw = (row.seen     || '').toLowerCase();
+      const isSeen  = ['true', 'yes', '1', 'y'].includes(seenRaw);
       return {
         id:       idx + 1,
         title:    row.title   || '',
-        status:   (row.status || STATUS.QUEUE).toLowerCase(),
+        status:   isSeen ? STATUS.SEEN : (row.status || STATUS.QUEUE).toLowerCase(),
         favorite: ['true', 'yes', '1', 'y'].includes(favRaw),
         notes:    row.notes   || '',
         rating:   row.rating  || '',
