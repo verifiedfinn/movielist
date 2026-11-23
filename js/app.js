@@ -22,6 +22,13 @@
   const sectionCount   = document.getElementById('section-count');
   const loadingOverlay = document.getElementById('loading-overlay');
 
+  const ICON = {
+    film:    '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></svg>',
+    star:    '<svg class="ico ico-star" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    chevron: '<svg class="ico ico-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+    alert:   '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+  };
+
   /* ── Clock ── */
   const cTime = document.getElementById('cTime');
   const cAmpm = document.getElementById('cAmpm');
@@ -614,8 +621,8 @@
   function showError() {
     cardsWrap.innerHTML = `
       <div class="empty">
-        <div class="empty-glyph" style="color:rgba(255,30,50,0.55)">✕</div>
-        <div class="empty-text" style="color:rgba(255,30,50,0.70)">Connection to the Grid failed</div>
+        <div class="empty-glyph is-error">${ICON.alert}</div>
+        <div class="empty-text">Couldn’t load the sheet. Try refresh</div>
       </div>`;
   }
 
@@ -628,7 +635,7 @@
   }
 
   const SECTION_LABELS = {
-    all: 'All Titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites'
+    all: 'All titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites'
   };
 
   function setFilter(f) {
@@ -670,10 +677,10 @@
       ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   }
 
-  /* Tron-style no-poster placeholder HTML — used site-wide */
+  /* No-poster placeholder HTML — used site-wide */
   function npcHtml(title, year) {
     return `<div class="npc-inner">
-      <div class="npc-glyph">◈</div>
+      <div class="npc-glyph">${ICON.film}</div>
       <div class="npc-title">${escHtml(title)}</div>
       ${year ? `<div class="npc-year">${escHtml(String(year))}</div>` : ''}
     </div>`;
@@ -683,7 +690,7 @@
   function cardTopBadges(m) {
     return `
       <span class="card-status-badge ${m.status}">${m.status === STATUS.SEEN ? 'Seen' : 'Queue'}</span>
-      ${m.favorite ? '<span class="card-fav-badge">★</span>' : ''}`;
+      ${m.favorite ? `<span class="card-fav-badge" aria-label="Favorite">${ICON.star}</span>` : ''}`;
   }
 
   /* ── Render all cards ── */
@@ -691,15 +698,15 @@
     cardsWrap.innerHTML = '';
     const list = filtered();
 
-    if (sectionTitle) sectionTitle.textContent = SECTION_LABELS[filter] || 'All Titles';
+    if (sectionTitle) sectionTitle.textContent = SECTION_LABELS[filter] || 'All titles';
     if (sectionCount) sectionCount.textContent = list.length
       ? `${list.length} title${list.length !== 1 ? 's' : ''}` : '';
 
     if (!list.length) {
       cardsWrap.innerHTML = `
         <div class="empty">
-          <div class="empty-glyph">◈</div>
-          <div class="empty-text">No titles in this sector</div>
+          <div class="empty-glyph">${ICON.film}</div>
+          <div class="empty-text">Nothing here yet</div>
         </div>`;
       return;
     }
@@ -742,13 +749,13 @@
             <div class="card-skeleton-bar w-title"></div>
           </div>
         </div>
-        <div class="card-corner"></div>`;
+`;
       return;
     }
 
     const hasPoster  = !!m.poster;
     const yearStr    = m.year       ? escHtml(m.year) : '';
-    const imdbStr    = m.imdbRating ? `★ ${escHtml(m.imdbRating)}` : '';
+    const imdbStr    = m.imdbRating ? `IMDb ${escHtml(m.imdbRating)}` : '';
     const metaStr    = [yearStr, imdbStr].filter(Boolean).join(' · ');
     const genreFirst = m.genre ? m.genre.split(',')[0].trim() : '';
 
@@ -764,11 +771,11 @@
         <div class="card-top">${cardTopBadges(m)}</div>
         <div class="card-footer">
           <div class="card-footer-head">
-            <div class="card-corrupted-label">DATA CORRUPTED</div>
+            <div class="card-corrupted-label">No match found</div>
             <div class="card-title">${escHtml(m.title)}</div>
           </div>
         </div>
-        <div class="card-corner"></div>`;
+`;
     } else {
       card.className = 'card' + (m.favorite ? ' fav' : '');
       if (hasPoster) {
@@ -791,7 +798,7 @@
 
       card.innerHTML = `
         ${hasPoster
-          ? `<div class="card-bg"></div><div class="card-tint"></div><div class="card-scan"></div>`
+          ? `<div class="card-bg"></div>`
           : `<div class="card-no-poster-bg">${npcHtml(m.title, m.year)}</div>`}
         <div class="card-overlay"></div>
         <div class="card-top">${cardTopBadges(m)}</div>
@@ -803,13 +810,13 @@
             <div class="card-title-row">
               <div class="card-title">${escHtml(m.title)}</div>
               ${m.plot
-                ? `<button class="card-plot-toggle" title="Show synopsis" aria-label="Show synopsis" aria-expanded="false">▸</button>`
+                ? `<button class="card-plot-toggle" title="Show synopsis" aria-label="Show synopsis" aria-expanded="false">${ICON.chevron}</button>`
                 : ''}
             </div>
           </div>
           ${m.plot ? `<div class="card-plot-panel" aria-hidden="true"><p class="card-plot-text">${escHtml(m.plot)}</p></div>` : ''}
         </div>
-        <div class="card-corner"></div>`;
+`;
 
       const toggleBtn = card.querySelector('.card-plot-toggle');
       if (toggleBtn) {
@@ -817,7 +824,6 @@
           e.stopPropagation();
           const open = card.classList.toggle('plot-open');
           const panel = card.querySelector('.card-plot-panel');
-          toggleBtn.textContent = open ? '▾' : '▸';
           toggleBtn.title       = open ? 'Hide synopsis' : 'Show synopsis';
           toggleBtn.setAttribute('aria-expanded', open);
           if (panel) panel.setAttribute('aria-hidden', !open);
@@ -866,7 +872,7 @@
     }
 
     detailTitle.textContent = m.title;
-    detailTitle.style.color = m.favorite ? '#ffb300' : '';
+    document.getElementById('detail-fav').hidden = !m.favorite;
     detailYear.textContent  = m.year || '';
 
     const hasRuntime = !!m.runtime;
@@ -886,14 +892,13 @@
     detailDirector.textContent   = m.director ? 'Dir. ' + escHtml(m.director) : '';
     detailDirector.style.display = m.director ? '' : 'none';
 
-    detailImdb.textContent   = m.imdbRating ? '★ IMDb ' + m.imdbRating : '';
+    detailImdb.textContent   = m.imdbRating ? 'IMDb ' + m.imdbRating : '';
     detailImdb.style.display = m.imdbRating ? '' : 'none';
 
     detailPlot.textContent = m.plot || 'No summary available.';
     detailPlot.className   = m.plot ? '' : 'no-plot';
     detailPlot.classList.remove('open');
     plotToggleBtn.setAttribute('aria-expanded', 'false');
-    plotToggleBtn.textContent = '▸ Synopsis';
 
     const parts = [
       m.rating ? `<span class="detail-user-rating">Your rating: ${escHtml(m.rating)}</span>` : '',
@@ -913,7 +918,6 @@
   plotToggleBtn.addEventListener('click', () => {
     const open = detailPlot.classList.toggle('open');
     plotToggleBtn.setAttribute('aria-expanded', open);
-    plotToggleBtn.textContent = open ? '▾ Synopsis' : '▸ Synopsis';
   });
 
   function closeDetail() {
@@ -1062,7 +1066,7 @@
       card.dataset.initRot = rot.toFixed(1);
       card.innerHTML = `
         <div class="lucky-card-inner">
-          <div class="lucky-card-back">◈</div>
+          <div class="lucky-card-back">${ICON.film}</div>
           <div class="lucky-card-front">
             <div class="lf-poster"></div>
             <div class="lf-title">—</div>
@@ -1077,9 +1081,9 @@
 
   function openLucky() {
     const pool = filtered();
-    const labels = { all: 'All Titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites' };
+    const labels = { all: 'All titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites' };
     luckyPoolLabel.textContent =
-      `Picking from: ${labels[filter] || 'All'} · ${pool.length} title${pool.length !== 1 ? 's' : ''}`;
+      `From ${labels[filter] || 'All titles'} · ${pool.length} title${pool.length !== 1 ? 's' : ''}`;
     luckyResult.hidden   = true;
     luckyAgainBtn.hidden = true;
     luckyDealBtn.hidden  = false;
@@ -1160,31 +1164,16 @@
   88% { transform:translate(calc(-50% + ${x8}px),calc(-50% + ${y8}px)) rotateZ(${sp.r+700}deg) rotateY(486deg) scale(0.42); opacity:0.20; animation-timing-function:ease-in; }
   95% { transform:translate(-50%,-50%) rotateZ(${sp.r+775}deg) rotateY(508deg) scale(0.11); opacity:0.04; }
   100%{ transform:translate(-50%,-50%) rotateZ(${sp.r+815}deg) rotateY(518deg) scale(0.02); opacity:0; }
-}
-@keyframes lk-glow${i} {
-  0%  { filter: drop-shadow(0 0 3px rgba(0,255,255,0.30)); }
-  14% { filter: drop-shadow(0 0 2px rgba(0,255,255,1)) drop-shadow(0 0 10px rgba(0,255,255,0.80)) drop-shadow(0 0 22px rgba(0,220,255,0.45)); }
-  22% { filter: drop-shadow(0 0 6px rgba(0,255,255,0.65)) drop-shadow(0 0 18px rgba(0,210,255,0.35)); }
-  30% { filter: drop-shadow(0 0 4px rgba(0,255,255,0.28)); }
-  62% { filter: drop-shadow(0 0 4px rgba(0,255,255,0.28)); }
-  76% { filter: drop-shadow(0 0 7px rgba(0,255,255,0.55)) drop-shadow(0 0 18px rgba(0,200,255,0.28)); }
-  88% { filter: drop-shadow(0 0 10px rgba(0,255,255,0.80)) drop-shadow(0 0 28px rgba(0,200,255,0.40)); }
-  95% { filter: drop-shadow(0 0 14px rgba(0,255,255,0.90)) drop-shadow(0 0 38px rgba(0,200,255,0.45)); }
-  100%{ filter: none; }
 }`;
     });
     kfStyle.textContent = kfText;
     document.head.appendChild(kfStyle);
 
-    const isMobile = navigator.maxTouchPoints > 0;
     const scatterCards = luckyCards.slice();
     luckyCards.forEach((c, i) => {
       const delay = i * STAGGER_MS;
       c.style.transition = 'none';
-      // On mobile skip the drop-shadow glow animation — it's GPU-heavy and causes lag
-      c.style.animation = isMobile
-        ? `lk${i} ${TOTAL_DUR}ms ${delay}ms linear forwards`
-        : `lk${i} ${TOTAL_DUR}ms ${delay}ms linear forwards,lk-glow${i} ${TOTAL_DUR}ms ${delay}ms linear forwards`;
+      c.style.animation = `lk${i} ${TOTAL_DUR}ms ${delay}ms linear forwards`;
     });
 
     // Card launch sounds — fire as each card bursts outward
@@ -1195,47 +1184,12 @@
       }, Math.round(i * STAGGER_MS + 35));
     }
 
-    // Per-card impact taps — fire at the vortex arc sweep (80% keyframe) for each card,
-    // staggered by each card's animation delay. Each tap appears slightly offset toward
-    // that card's spread origin so the positions are distinct (not all on top of each other).
-    const tapBase = Math.round(TOTAL_DUR * 0.80); // 1920ms for card 0
+    // Per-card tap sounds — fire at the vortex arc sweep (80% keyframe) for each card
+    const tapBase = Math.round(TOTAL_DUR * 0.80);
     for (let i = 0; i < LUCKY_CARD_COUNT; i++) {
-      const sp   = SPREADS[i];
-      // 15% of spread offset — near center but spatially distinct per card
-      const tapX = (sp.x * spreadScale * 0.15).toFixed(1);
-      const tapY = (sp.y * spreadScale * 0.15).toFixed(1);
       setTimeout(() => {
         if (luckyDealGen !== myGen) return;
-        const tap = document.createElement('div');
-        tap.className = 'lucky-card-tap';
-        tap.style.transform = `translate(${tapX}px, ${tapY}px)`;
-        // ripple pulse
-        const ripple = document.createElement('div');
-        ripple.className = 'tap-ripple';
-        tap.appendChild(ripple);
-        // 9 mini spark streaks per tap hit
-        for (let j = 0; j < 9; j++) {
-          const ang  = Math.random() * 360;
-          const dist = 10 + Math.random() * 22;
-          const len  = Math.ceil(4 + Math.random() * 8);
-          const dur  = Math.round(140 + Math.random() * 160);
-          const rad  = ang * Math.PI / 180;
-          const sp   = document.createElement('div');
-          sp.className = 'tap-spark';
-          sp.style.height = `${len}px`;
-          sp.style.top    = `${-(len / 2)}px`;
-          sp.style.left   = '-0.5px';
-          sp.style.setProperty('--tx',  `${Math.round(dist * Math.cos(rad))}px`);
-          sp.style.setProperty('--ty',  `${Math.round(dist * Math.sin(rad))}px`);
-          sp.style.setProperty('--rot', `${ang - 90}deg`);
-          sp.style.setProperty('--dur', `${dur}ms`);
-          tap.appendChild(sp);
-        }
-        luckyArena.appendChild(tap);
-        void tap.offsetHeight;
-        tap.classList.add('active');
         FX.tap();
-        setTimeout(() => { if (tap.parentNode) tap.remove(); }, 360);
       }, tapBase + i * STAGGER_MS);
     }
 
@@ -1244,71 +1198,8 @@
     const lastCardEnd = TOTAL_DUR + (LUCKY_CARD_COUNT - 1) * STAGGER_MS; // 3065ms
     await wait(lastCardEnd - 220);
 
-    /* ── IMPACT — shockwave at implosion center ──────────────────────── */
-    const impact = document.createElement('div');
-    impact.className = 'lucky-impact';
-    const rF = (lo, hi) => lo + Math.random() * (hi - lo);
-    const pal = [
-      'rgba(255,255,255,0.95)', 'rgba(255,255,255,0.90)',
-      'rgba(0,255,255,0.92)',   'rgba(0,255,255,0.84)',
-      'rgba(40,210,255,0.88)',  'rgba(60,180,255,0.80)',
-      'rgba(165,230,255,0.64)', 'rgba(200,240,255,0.50)',
-    ];
-    const brightC = () => pal[Math.floor(Math.random() * 4)];
-    const midC    = () => pal[2 + Math.floor(Math.random() * 4)];
-    const wispC   = () => pal[6 + Math.floor(Math.random() * 2)];
-
-    // Spark streaks — 1px wide, rotated to face travel direction
-    // --rot orients the line along its trajectory so it looks like a streaking spark
-    const mkSpark = (ang, dist, dur, del, len) => {
-      const el  = document.createElement('div');
-      el.className = 'lucky-spark';
-      const rad = ang * Math.PI / 180;
-      const h   = Math.round(len);
-      el.style.height = `${h}px`;
-      el.style.top    = `${-(h / 2)}px`;
-      el.style.left   = '-0.5px';
-      el.style.setProperty('--tx',  `${Math.round(dist * Math.cos(rad))}px`);
-      el.style.setProperty('--ty',  `${Math.round(dist * Math.sin(rad))}px`);
-      el.style.setProperty('--rot', `${ang - 90}deg`);  // align long axis to travel angle
-      el.style.setProperty('--c',   brightC());
-      el.style.setProperty('--dur', `${Math.round(dur)}ms`);
-      el.style.setProperty('--del', `${Math.round(del)}ms`);
-      impact.appendChild(el);
-    };
-
-    // Dust blobs — small squares for ember/settling atmosphere
-    const mkDust = (ang, dist, dur, del, sz, col) => {
-      const el = document.createElement('div');
-      el.className = 'lucky-dust';
-      const s  = Math.ceil(sz);
-      el.style.width  = `${s}px`;
-      el.style.height = `${s}px`;
-      el.style.top    = `${-(s / 2)}px`;
-      el.style.left   = `${-(s / 2)}px`;
-      const rad = ang * Math.PI / 180;
-      el.style.setProperty('--tx',  `${Math.round(dist * Math.cos(rad))}px`);
-      el.style.setProperty('--ty',  `${Math.round(dist * Math.sin(rad))}px`);
-      el.style.setProperty('--c',   col);
-      el.style.setProperty('--dur', `${Math.round(dur)}ms`);
-      el.style.setProperty('--del', `${Math.round(del)}ms`);
-      impact.appendChild(el);
-    };
-
-    for (let i = 0; i < 22; i++) // fast sparks — long bright streaks flying far
-      mkSpark(rF(0,360), rF(52,112), rF(255,445), rF(0,18),  rF(6,14));
-    for (let i = 0; i < 8; i++)  // medium sparks — mid range
-      mkSpark(rF(0,360), rF(20,54),  rF(310,510), rF(0,30),  rF(4,8));
-    for (let i = 0; i < 10; i++) // ember blobs — small squares, mid range
-      mkDust(rF(0,360), rF(10,48), rF(340,570), rF(0,40), rF(2,3), midC());
-    for (let i = 0; i < 14; i++) // settling dust — wispy specks barely moving
-      mkDust(rF(0,360), rF(2,20),  rF(470,940), rF(0,70), 1,       wispC());
-
-    luckyArena.appendChild(impact);
-    void impact.offsetHeight;
-    impact.classList.add('active');
+    /* ── IMPACT — sound at implosion center ── */
     FX.impact();
-    setTimeout(() => { if (impact.parentNode) impact.remove(); }, 1300);
 
     /* ── PHASE 5: CASINO SPIN ────────────────────────────────────────── */
     // Minimum radius so adjacent cards (width = carousel CSS width) don't physically
@@ -1329,7 +1220,7 @@
       card.style.transform = `rotateY(${i * ANGLE_PER_CARD}deg) translateZ(${luckyRadius}px)`;
       card.innerHTML = `
         <div class="lucky-card-inner">
-          <div class="lucky-card-back">◈</div>
+          <div class="lucky-card-back">${ICON.film}</div>
           <div class="lucky-card-front">
             <div class="lf-poster"></div>
             <div class="lf-title">—</div>
@@ -1416,41 +1307,28 @@
     const winnerCard = luckyCards[winnerSlot];
     const lfPoster   = winnerCard.querySelector('.lf-poster');
     const lfTitle    = winnerCard.querySelector('.lf-title');
-    const showTronTitle = () => {
-      lfPoster.innerHTML = `
-        <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;box-sizing:border-box;">
-          <div style="color:rgba(0,255,255,0.38);font-size:20px;letter-spacing:4px;line-height:1;">◈</div>
-          <div style="color:rgba(0,255,255,0.95);font-size:12px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;text-align:center;line-height:1.45;text-shadow:0 0 10px rgba(0,255,255,0.7),0 0 26px rgba(0,255,255,0.28);">${escHtml(luckyPicked.title)}</div>
-          ${luckyPicked.year ? `<div style="color:rgba(0,255,255,0.4);font-size:10px;letter-spacing:2.5px;">${escHtml(String(luckyPicked.year))}</div>` : ''}
-        </div>`;
+    const showPlainTitle = () => {
+      lfPoster.innerHTML = npcHtml(luckyPicked.title, luckyPicked.year);
       lfTitle.style.display = 'none';
     };
     if (luckyPicked.poster && !posterBroken) {
       lfPoster.style.backgroundImage = `url("${luckyPicked.poster}")`;
       lfTitle.textContent = luckyPicked.title;
     } else {
-      showTronTitle();
+      showPlainTitle();
     }
 
-    /* ── PHASE 8: POP FORWARD + NEON CHARGE ──────────────────────── */
+    /* ── PHASE 8: POP FORWARD ─────────────────────────────────────── */
     winnerCard.style.transition = `transform 0.36s cubic-bezier(0.4,0,0.2,1)`;
     winnerCard.style.transform  =
       `rotateY(${winnerSlot * ANGLE_PER_CARD}deg) translateZ(${luckyRadius + 62}px) scale(1.09)`;
-    winnerCard.style.filter =
-      'drop-shadow(0 0 14px rgba(0,255,255,0.72)) drop-shadow(0 0 32px rgba(0,255,255,0.34))';
 
     await wait(800);
 
-    /* ── PHASE 9: FLIP + FLASH ────────────────────────────────────── */
-    winnerCard.style.filter = '';
+    /* ── PHASE 9: FLIP ────────────────────────────────────────────── */
     winnerCard.classList.add('flipped');
     FX.reveal();
 
-    const flash = document.createElement('div');
-    flash.className = 'lucky-flash';
-    luckyArena.appendChild(flash);
-    requestAnimationFrame(() => requestAnimationFrame(() => flash.classList.add('active')));
-    flash.addEventListener('animationend', () => flash.remove(), { once: true });
 
     await wait(2400);
 
@@ -1464,8 +1342,8 @@
     const metaParts = [
       luckyPicked.year       || '',
       luckyPicked.runtime    || '',
-      luckyPicked.imdbRating ? `★ ${luckyPicked.imdbRating}` : '',
-      luckyPicked.favorite   ? '★ Fav' : ''
+      luckyPicked.imdbRating ? `IMDb ${luckyPicked.imdbRating}` : '',
+      luckyPicked.favorite   ? 'Favorite' : ''
     ].filter(Boolean);
     luckyResMeta.textContent = metaParts.join(' · ');
 
