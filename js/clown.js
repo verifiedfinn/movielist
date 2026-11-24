@@ -22,11 +22,10 @@
   }
 
   function play() {
-    localStorage.setItem('clowned', '1');
     const css = document.createElement('style');
     css.textContent = `
       #clown-ov{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;
-        align-items:center;justify-content:center;background:rgba(0,0,0,.82);cursor:pointer;
+        align-items:center;justify-content:center;background:rgba(0,0,0,.82);
         animation:clownFade .3s ease-out;font-family:inherit;overflow:hidden}
       #clown-ov .cl-face{font-size:min(42vw,260px);line-height:1;
         animation:clownIn 1s cubic-bezier(.2,1.6,.4,1) both, clownWob 1.1s 1s ease-in-out infinite}
@@ -35,7 +34,15 @@
         text-shadow:0 0 12px #ff3b6b,0 0 30px #ffd600;animation:clownTxt .5s .6s both}
       #clown-ov .cl-sub{margin-top:10px;color:#ffd600;font-size:clamp(11px,3vw,15px);
         letter-spacing:.14em;opacity:.8;text-align:center;padding:0 16px;animation:clownTxt .5s 1s both}
-      #clown-ov .cl-b{position:absolute;bottom:-60px;font-size:40px;animation:clownUp linear forwards}
+      #clown-ov .cl-b{position:absolute;bottom:-60px;font-size:40px;animation:clownUp linear infinite}
+      #clown-ov .cl-face{cursor:pointer;user-select:none}
+      #clown-x{position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;z-index:2;
+        width:84px;height:84px;border-radius:50%;border:4px solid #fff;background:#e00;color:#fff;
+        font-size:52px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;
+        justify-content:center;box-shadow:0 0 0 4px #e00,0 0 30px #f00,0 6px 18px rgba(0,0,0,.6);
+        animation:clownX 1s ease-in-out infinite}
+      #clown-x:active{transform:scale(.9)}
+      @keyframes clownX{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
       @keyframes clownFade{from{opacity:0}}
       @keyframes clownIn{0%{transform:scale(0) rotate(-540deg)}100%{transform:scale(1) rotate(0)}}
       @keyframes clownWob{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.06)}}
@@ -46,9 +53,9 @@
 
     const ov = document.createElement('div');
     ov.id = 'clown-ov';
-    ov.innerHTML = `<div class="cl-face">🤡</div>
+    ov.innerHTML = `<button id="clown-x" aria-label="Close">✕</button><div class="cl-face">🤡</div>
       <div class="cl-txt">Burnaby Detected</div>
-      <div class="cl-sub">HONK HONK // TAP TO CONTINUE</div>`;
+      <div class="cl-sub">HONK HONK // PRESS THE RED X</div>`;
     const bits = ['🎈', '🎈', '🎉', '🤡', '🎪', '🎈'];
     for (let i = 0; i < 18; i++) {
       const b = document.createElement('span');
@@ -61,10 +68,13 @@
       ov.appendChild(b);
     }
     const close = () => { ov.style.transition = 'opacity .3s'; ov.style.opacity = '0'; setTimeout(() => ov.remove(), 300); };
-    ov.addEventListener('click', () => { honk(); setTimeout(close, 450); });
+    /* Only the red X closes it; counted as seen once closed, so a reload won't dodge it */
+    ov.querySelector('#clown-x').addEventListener('click', () => {
+      localStorage.setItem('clowned', '1'); honk(); setTimeout(close, 450);
+    });
+    ov.querySelector('.cl-face').addEventListener('click', honk);
     document.body.appendChild(ov);
     honk(); // browsers may block sound until the first tap; the tap honks too
-    setTimeout(close, 7000);
   }
 
   if (force) return void (document.readyState === 'loading'
