@@ -126,7 +126,13 @@
          match; tags is a comma list like "tubi, bollywood". */
       const fix     = TITLE_FIXES[(row.title || '').toLowerCase()];
       if (fix && fix[0]) row.title = fix[0];
-      const imdbId  = ((row.imdb || '').match(/tt\d{6,}/) || [''])[0] || (fix ? fix[1] : '');
+      const imdbId  = ((row.imdb || row.imdb_id || '').match(/tt\d{6,}/) || [''])[0] || (fix ? fix[1] : '');
+      /* Optional movie-data columns in the sheet: they override OMDb */
+      const sheetData = {};
+      for (const [col, k] of [['poster_url', 'Poster'], ['imdb_rating', 'imdbRating'], ['genre', 'Genre'],
+                              ['runtime', 'Runtime'], ['plot', 'Plot'], ['director', 'Director'], ['year_actual', 'Year']]) {
+        if (row[col]) sheetData[k] = row[col];
+      }
       const tags    = (row.tags || '').split(/[,;]/).map(t => t.trim().toLowerCase()).filter(Boolean);
       /* Auto-label from the notes text too, so new rows tag themselves */
       for (const [tag, re] of NOTE_TAGS) {
@@ -136,6 +142,7 @@
         id:       idx + 1,
         imdbId,
         tags,
+        sheetData,
         title:    row.title   || '',
         status:   isSeen ? STATUS.SEEN : (row.status || STATUS.QUEUE).toLowerCase(),
         favorite: ['true', 'yes', '1', 'y'].includes(favRaw),
@@ -696,7 +703,10 @@
     for (let i = 0; i < movies.length; i += BATCH) {
       await Promise.all(
         movies.slice(i, i + BATCH).map(async m => {
-          const d = await fetchOMDB(m);
+          const sd = m.sheetData;
+          const full = sd.Poster && sd.imdbRating && sd.Genre && sd.Plot;
+          let d = full ? null : await fetchOMDB(m);
+          if (d || Object.keys(sd).length) d = { ...(d || {}), ...sd };
           if (d) applyOMDB(m, d);
           else   m.corrupted = true;
           m.enriched = true;
