@@ -408,6 +408,35 @@ html, body {
   clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
   transition: color .18s, border-color .18s, background .18s, transform .18s;
 }
+/* Brighter posters toggle: same chamfered button as refresh */
+#brightBtn {
+  flex-shrink: 0;
+  width: 34px; height: 34px; padding: 0;
+  font-size: 16px; line-height: 1; font-family: inherit;
+  color: rgba(0,255,255,0.65);
+  background: rgba(0,255,255,0.05);
+  border: 1px solid rgba(0,255,255,0.35); cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  transition: color .18s, border-color .18s, background .18s, box-shadow .18s, text-shadow .18s;
+}
+#brightBtn:hover { color: #00ffff; border-color: rgba(0,255,255,0.75); background: rgba(0,255,255,0.10); }
+#brightBtn.on {
+  color: #ffd600; border-color: rgba(255,214,0,0.75); background: rgba(255,214,0,0.10);
+  text-shadow: 0 0 6px #ffd600, 0 0 16px rgba(255,214,0,0.6);
+}
+
+/* Bright mode: posters at full colour, Tron frame stays */
+body.bright-posters .card-bg { filter: none; }
+body.bright-posters .card:hover .card-bg { filter: brightness(1.05); }
+body.bright-posters .card-tint { opacity: 0; }
+body.bright-posters .card-scan { opacity: 0.15; }
+body.bright-posters .card-overlay {
+  background: linear-gradient(to top,
+    rgba(0,5,15,0.85) 0%, rgba(0,5,15,0.55) 22%, rgba(0,5,15,0.15) 40%, transparent 55%);
+}
+body.bright-posters #detailImg { filter: none; }
+body.bright-posters #detail-poster-tint { opacity: 0; }
+
 #refreshBtn:hover {
   color: #00ffff; border-color: rgba(0,255,255,0.70);
   background: rgba(0,255,255,0.12);

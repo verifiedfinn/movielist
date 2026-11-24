@@ -1024,6 +1024,24 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
   /* ── Refresh button ── */
+  /* ── Brighter posters toggle (remembered per device) ── */
+  const brightBtn = document.getElementById('brightBtn');
+  if (brightBtn) {
+    const applyBright = on => {
+      document.body.classList.toggle('bright-posters', on);
+      brightBtn.classList.toggle('on', on);
+      brightBtn.setAttribute('aria-pressed', on);
+    };
+    let brightOn = false;
+    try { brightOn = localStorage.getItem('bright-posters') === '1'; } catch {}
+    applyBright(brightOn);
+    brightBtn.addEventListener('click', () => {
+      brightOn = !brightOn;
+      applyBright(brightOn);
+      try { localStorage.setItem('bright-posters', brightOn ? '1' : '0'); } catch {}
+    });
+  }
+
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
