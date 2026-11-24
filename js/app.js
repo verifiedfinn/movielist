@@ -151,7 +151,7 @@
   /* ── OMDB ── */
   const valOmdb = v => (v && v !== 'N/A') ? v : null;
 
-  const OMDB_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const OMDB_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days (new titles only)
 
   function omdbCacheGet(title) {
     try {
@@ -170,7 +170,17 @@
 
   /* Lookup priority: IMDb id from the sheet (exact), otherwise title,
      with a trailing "(1986)" pulled out into OMDb's year param. */
+  /* Saved snapshot (data/movies.json, built by scripts/build-movie-data.mjs).
+     Titles in it never hit the API; only new sheet rows do. */
+  let SNAP = { byId: {}, byTitle: {} };
+  const snapReady = fetch('data/movies.json?_=' + Math.floor(Date.now() / 3.6e6))
+    .then(r => r.ok ? r.json() : null).then(j => { if (j) SNAP = j; }).catch(() => {});
+
   async function fetchOMDB(m) {
+    await snapReady;
+    const sid = m.imdbId || SNAP.byTitle[m.title.toLowerCase()];
+    if (sid && SNAP.byId[sid]) return SNAP.byId[sid];
+    if (!m.imdbId && SNAP.byTitle[m.title.toLowerCase()] === null) return null;
     const key = m.imdbId || m.title;
     const cached = omdbCacheGet(key);
     if (cached !== undefined) return cached;
