@@ -233,7 +233,10 @@ html, body {
     0 0 40px rgba(0,255,255,0.14);
 
   pointer-events: auto; overflow: hidden;
+  overflow-y: auto; scrollbar-width: none; /* more nav sections now: scroll instead of clipping */
 }
+#sidebar::-webkit-scrollbar { display: none; }
+#sb-wrap { min-height: 0; }
 
 .p-label {
   padding: 16px 20px 10px;
@@ -663,7 +666,7 @@ html, body {
   color: rgba(255,255,255,0.68);
 }
 /* Where-to-watch tags (sheet "tags" column) */
-.card-top { justify-content: flex-start; gap: 5px; }
+.card-top { justify-content: flex-start; flex-wrap: wrap; gap: 4px 5px; }
 .card-tag-badge {
   font-size: 8px; letter-spacing: 0.10em; text-transform: uppercase;
   padding: 3px 7px;
@@ -678,6 +681,39 @@ html, body {
   border: 1px solid rgba(255,64,200,0.70);
   color: #ff5fd2; text-shadow: 0 0 6px rgba(255,64,200,0.8);
 }
+/* Who suggested it — quieter than the where-tags */
+.card-tag-badge.tag-alam,
+.card-tag-badge.tag-isaac,
+.card-tag-badge.tag-finn {
+  border: 1px solid rgba(160,200,255,0.35);
+  color: rgba(200,225,255,0.80);
+}
+
+/* Lucky draw: skip labels */
+#lucky-skip {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 6px; margin-top: 4px;
+}
+#lucky-skip[hidden] { display: none; }
+.lucky-skip-lbl {
+  font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: rgba(0,255,255,0.42); margin-right: 2px;
+}
+.lucky-skip-chip {
+  font-family: inherit; font-size: 9px; letter-spacing: 0.10em; text-transform: uppercase;
+  padding: 5px 10px; cursor: pointer;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(0,255,255,0.45); color: #00ffff;
+  text-shadow: 0 0 6px rgba(0,255,255,0.6);
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  transition: color .2s, border-color .2s, opacity .2s, box-shadow .2s;
+}
+.lucky-skip-chip:hover { box-shadow: 0 0 10px rgba(0,255,255,0.35); }
+.lucky-skip-chip.on {
+  border-color: rgba(255,48,64,0.55); color: rgba(255,90,100,0.85);
+  text-shadow: none; text-decoration: line-through; opacity: 0.8;
+}
+
 .fbtn-tubi.active  { color: #ffd600; border-color: #ffd600; background: rgba(255,214,0,0.10);
   box-shadow: 0 0 2px #fff, 0 0 10px #ffd600, 0 0 24px rgba(255,214,0,0.35), inset 0 0 16px rgba(255,214,0,0.10); }
 .fbtn-bolly.active { color: #ff5fd2; border-color: #ff5fd2; background: rgba(255,64,200,0.10);

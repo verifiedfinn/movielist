@@ -38,6 +38,23 @@
   setInterval(tickClock, 1000);
 
   /* ── CSV parser ── */
+  /* Labels. "where" = where to find it, "by" = who suggested it.
+     Each can come from the sheet's tags column or from the notes text. */
+  const TAGS = {
+    tubi:      { label: 'Tubi',  group: 'where' },
+    bollywood: { label: 'Bolly', group: 'where' },
+    alam:      { label: 'Alam',  group: 'by' },
+    isaac:     { label: 'Isaac', group: 'by' },
+    finn:      { label: 'Finn',  group: 'by' },
+  };
+  const NOTE_TAGS = [
+    ['tubi',      /\btubi\b/i],
+    ['bollywood', /\bbollywood\b/i],
+    ['alam',      /\balam\b/i],
+    ['isaac',     /\bisaac\b/i],
+    ['finn',      /\bfinns?\b/i],
+  ];
+
   /* Full CSV tokenizer: handles quoted commas, "" escapes and
      line breaks inside a quoted cell (a stray Enter in a sheet cell). */
   function csvRows(text) {
@@ -72,6 +89,10 @@
          match; tags is a comma list like "tubi, bollywood". */
       const imdbId  = ((row.imdb || '').match(/tt\d{6,}/) || [''])[0];
       const tags    = (row.tags || '').split(/[,;]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+      /* Auto-label from the notes text too, so new rows tag themselves */
+      for (const [tag, re] of NOTE_TAGS) {
+        if (re.test(row.notes || '') && !tags.includes(tag)) tags.push(tag);
+      }
       return {
         id:       idx + 1,
         imdbId,
@@ -650,7 +671,8 @@
 
   const SECTION_LABELS = {
     all: 'All Titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites',
-    'tag:tubi': 'On Tubi', 'tag:bollywood': 'Bollywood'
+    'tag:tubi': 'On Tubi', 'tag:bollywood': 'Bollywood',
+    'tag:alam': 'Alam Picks', 'tag:isaac': 'Isaac Picks', 'tag:finn': 'Finn Picks'
   };
 
   function setFilter(f) {
@@ -701,14 +723,12 @@
     </div>`;
   }
 
-  const TAG_LABELS = { tubi: 'Tubi', bollywood: 'Bolly' };
-
   /* Shared card-top badge markup */
   function cardTopBadges(m) {
     return `
       <span class="card-status-badge ${m.status}">${m.status === STATUS.SEEN ? 'Seen' : 'Queue'}</span>
-      ${m.tags.filter(t => TAG_LABELS[t]).map(t =>
-        `<span class="card-tag-badge tag-${t}">${TAG_LABELS[t]}</span>`).join('')}
+      ${m.tags.filter(t => TAGS[t]).map(t =>
+        `<span class="card-tag-badge tag-${t}">${TAGS[t].label}</span>`).join('')}
       ${m.favorite ? '<span class="card-fav-badge">★</span>' : ''}`;
   }
 
@@ -1101,14 +1121,51 @@
     }
   }
 
-  function openLucky() {
-    const pool = filtered();
+  /* ── Lucky skip labels: leave chosen labels out of the draw ── */
+  const luckySkipEl = document.getElementById('lucky-skip');
+  let luckySkip;
+  try { luckySkip = new Set(JSON.parse(localStorage.getItem('lucky-skip') || '[]')); }
+  catch { luckySkip = new Set(); }
+
+  function luckyPool() {
+    return filtered().filter(m => !m.tags.some(t => luckySkip.has(t)));
+  }
+
+  function updateLuckyLabel() {
+    const n = luckyPool().length;
     luckyPoolLabel.textContent =
-      `Picking from: ${SECTION_LABELS[filter] || 'All'} · ${pool.length} title${pool.length !== 1 ? 's' : ''}`;
+      `Picking from: ${SECTION_LABELS[filter] || 'All'} · ${n} title${n !== 1 ? 's' : ''}`;
+    if (!luckyDealing) luckyDealBtn.disabled = n === 0;
+  }
+
+  function renderLuckySkip() {
+    const present = new Set(filtered().flatMap(m => m.tags));
+    const keys = Object.keys(TAGS).filter(t => present.has(t));
+    luckySkipEl.hidden = !keys.length;
+    luckySkipEl.innerHTML = keys.length
+      ? `<span class="lucky-skip-lbl">Skip</span>` + keys.map(t =>
+          `<button type="button" class="lucky-skip-chip tag-${t}${luckySkip.has(t) ? ' on' : ''}"
+             data-tag="${t}" aria-pressed="${luckySkip.has(t)}">${TAGS[t].label}</button>`).join('')
+      : '';
+  }
+
+  luckySkipEl.addEventListener('click', e => {
+    const b = e.target.closest('.lucky-skip-chip');
+    if (!b || luckyDealing) return;
+    const t = b.dataset.tag;
+    luckySkip.has(t) ? luckySkip.delete(t) : luckySkip.add(t);
+    try { localStorage.setItem('lucky-skip', JSON.stringify([...luckySkip])); } catch {}
+    renderLuckySkip();
+    updateLuckyLabel();
+  });
+
+  function openLucky() {
+    renderLuckySkip();
+    updateLuckyLabel();
     luckyResult.hidden   = true;
     luckyAgainBtn.hidden = true;
     luckyDealBtn.hidden  = false;
-    luckyDealBtn.disabled = false;
+    luckyDealBtn.disabled = luckyPool().length === 0;
     buildLuckyDeck();
     luckyOverlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -1128,7 +1185,7 @@
 
   async function runLuckyDeal() {
     if (luckyDealing) return;
-    const pool = filtered();
+    const pool = luckyPool();
     if (!pool.length) return;
 
     luckyDealing = true;
