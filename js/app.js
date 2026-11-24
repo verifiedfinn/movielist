@@ -723,12 +723,21 @@
     </div>`;
   }
 
+  function tagChips(m) {
+    return m.tags.filter(t => TAGS[t]).map(t =>
+      `<span class="card-tag-badge tag-${t}">${TAGS[t].label}</span>`).join('');
+  }
+  /* Same chips under the title, used by the phone list layout */
+  function inlineTags(m) {
+    const chips = tagChips(m);
+    return chips ? `<div class="card-tags-inline">${chips}</div>` : '';
+  }
+
   /* Shared card-top badge markup */
   function cardTopBadges(m) {
     return `
       <span class="card-status-badge ${m.status}">${m.status === STATUS.SEEN ? 'Seen' : 'Queue'}</span>
-      ${m.tags.filter(t => TAGS[t]).map(t =>
-        `<span class="card-tag-badge tag-${t}">${TAGS[t].label}</span>`).join('')}
+      ${tagChips(m)}
       ${m.favorite ? '<span class="card-fav-badge">★</span>' : ''}`;
   }
 
@@ -812,6 +821,7 @@
           <div class="card-footer-head">
             <div class="card-corrupted-label">DATA CORRUPTED</div>
             <div class="card-title">${escHtml(m.title)}</div>
+            ${inlineTags(m)}
           </div>
         </div>
         <div class="card-corner"></div>`;
@@ -852,6 +862,7 @@
                 ? `<button class="card-plot-toggle" title="Show synopsis" aria-label="Show synopsis" aria-expanded="false">▸</button>`
                 : ''}
             </div>
+            ${inlineTags(m)}
           </div>
           ${m.plot ? `<div class="card-plot-panel" aria-hidden="true"><p class="card-plot-text">${escHtml(m.plot)}</p></div>` : ''}
         </div>
@@ -1025,22 +1036,26 @@
 
   /* ── Refresh button ── */
   /* ── Brighter posters toggle (remembered per device) ── */
-  const brightBtn = document.getElementById('brightBtn');
-  if (brightBtn) {
-    const applyBright = on => {
-      document.body.classList.toggle('bright-posters', on);
-      brightBtn.classList.toggle('on', on);
-      brightBtn.setAttribute('aria-pressed', on);
-    };
-    let brightOn = false;
-    try { brightOn = localStorage.getItem('bright-posters') === '1'; } catch {}
-    applyBright(brightOn);
-    brightBtn.addEventListener('click', () => {
-      brightOn = !brightOn;
-      applyBright(brightOn);
-      try { localStorage.setItem('bright-posters', brightOn ? '1' : '0'); } catch {}
+  /* Toolbar ☀ on desktop, drawer item on phones; both drive one setting */
+  const brightCtrls = ['brightBtn', 'navBright'].map(id => document.getElementById(id)).filter(Boolean);
+  let brightOn = false;
+  try { brightOn = localStorage.getItem('bright-posters') === '1'; } catch {}
+  const applyBright = () => {
+    document.body.classList.toggle('bright-posters', brightOn);
+    brightCtrls.forEach(el => { el.classList.toggle('on', brightOn); el.setAttribute('aria-pressed', brightOn); });
+  };
+  const toggleBright = () => {
+    brightOn = !brightOn;
+    applyBright();
+    try { localStorage.setItem('bright-posters', brightOn ? '1' : '0'); } catch {}
+  };
+  applyBright();
+  brightCtrls.forEach(el => {
+    el.addEventListener('click', toggleBright);
+    el.addEventListener('keydown', e => {
+      if (el.tagName !== 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleBright(); }
     });
-  }
+  });
 
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn) {

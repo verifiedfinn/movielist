@@ -425,6 +425,23 @@ html, body {
   text-shadow: 0 0 6px #ffd600, 0 0 16px rgba(255,214,0,0.6);
 }
 
+#navBright.on { color: #ffd600; }
+#navBright.on .n-ico { text-shadow: 0 0 6px #ffd600, 0 0 14px rgba(255,214,0,0.6); }
+#navBright:hover { color: #fff; background: rgba(0,255,255,0.07); }
+
+/* Chips under the title: phone list layout only */
+.card-tags-inline { display: none; }
+
+@media (max-width: 900px) {
+  /* Toolbar room: Tubi/Bollywood/brightness live in the drawer on phones */
+  .fbtn-tubi, .fbtn-bolly, #brightBtn { display: none; }
+  .card-top .card-tag-badge { display: none; }
+  .card-tags-inline {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px;
+  }
+  .card-tags-inline .card-tag-badge { font-size: 7.5px; padding: 2px 6px; }
+}
+
 /* Bright mode: posters at full colour, Tron frame stays */
 body.bright-posters .card-bg { filter: none; }
 body.bright-posters .card:hover .card-bg { filter: brightness(1.05); }
