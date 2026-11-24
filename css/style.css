@@ -516,6 +516,34 @@ body.bright-posters #detail-poster-tint { opacity: 0; }
   color: rgba(0,255,255,0.82); align-self: flex-end; margin-bottom: 3px;
 }
 
+/* Sort toggle: right end of the section header */
+#sortBtn {
+  margin-left: auto; flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  font-family: inherit; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(0,255,255,0.75);
+  background: rgba(0,255,255,0.05);
+  border: 1px solid rgba(0,255,255,0.35); cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: color .18s, border-color .18s, background .18s, text-shadow .18s;
+}
+#sortBtn .sort-ico { font-size: 13px; line-height: 1; }
+#sortBtn:hover { color: #00ffff; border-color: rgba(0,255,255,0.75); background: rgba(0,255,255,0.10); }
+#sortBtn.on {
+  color: #ffd600; border-color: rgba(255,214,0,0.7); background: rgba(255,214,0,0.08);
+  text-shadow: 0 0 6px rgba(255,214,0,0.7);
+}
+#sortShort { display: none; }
+@media (max-width: 540px) {
+  #section-hdr { gap: 10px; }
+  #section-title { white-space: nowrap; }
+  #section-count { white-space: nowrap; }
+  #sortBtn { height: 32px; padding: 0 10px; font-size: 8px; }
+  #sortLbl { display: none; }
+  #sortShort { display: inline; }
+}
+
 /* ── SETUP BANNER ── */
 #setupBanner {
   position: relative; z-index: 2; flex-shrink: 0;

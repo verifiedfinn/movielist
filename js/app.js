@@ -161,6 +161,12 @@
     m.director   = valOmdb(d.Director);
     m.plot       = valOmdb(d.Plot);
     m.year       = valOmdb(d.Year);
+    /* Auto-tag Bollywood: Indian production in Hindi */
+    const country = valOmdb(d.Country) || '', lang = valOmdb(d.Language) || '';
+    if (/India/.test(country) && /Hindi/.test(lang) && !m.tags.includes('bollywood')) {
+      m.tags.push('bollywood');
+      m.autoTagged = true;
+    }
   }
 
   const delay = ms => new Promise(r => setTimeout(r, ms));
@@ -650,6 +656,9 @@
       );
       if (i + BATCH < movies.length) await delay(120);
     }
+    /* Labels can change after OMDb (auto Bollywood): refresh a label view */
+    /* Ratings just arrived, so re-sort if sorting by rating */
+    if ((filter.startsWith('tag:') && movies.some(m => m.autoTagged)) || sortMode !== 'list') renderCards();
   }
 
   function showError() {
@@ -742,9 +751,47 @@
   }
 
   /* ── Render all cards ── */
+  /* ── Sort: list order → top rated → lowest rated (unrated always last) ── */
+  const SORTS = {
+    list: { label: 'List order',   short: 'List' },
+    top:  { label: 'Top rated',    short: 'Top' },
+    low:  { label: 'Lowest rated', short: 'Worst' },
+  };
+  const SORT_ORDER = ['list', 'top', 'low'];
+  let sortMode = 'list';
+  try { if (SORTS[localStorage.getItem('sort-mode')]) sortMode = localStorage.getItem('sort-mode'); } catch {}
+
+  function sorted(list) {
+    if (sortMode === 'list') return list;
+    const r = m => parseFloat(m.imdbRating);
+    return [...list].sort((a, b) => {
+      const ra = r(a), rb = r(b);
+      if (isNaN(ra) || isNaN(rb)) return isNaN(ra) - isNaN(rb) || a.id - b.id;
+      return sortMode === 'top' ? rb - ra : ra - rb;
+    });
+  }
+
+  const sortBtn = document.getElementById('sortBtn');
+  const sortLbl = document.getElementById('sortLbl');
+  function syncSortBtn() {
+    if (!sortBtn) return;
+    sortLbl.textContent = SORTS[sortMode].label;
+    const sh = document.getElementById('sortShort');
+    if (sh) sh.textContent = SORTS[sortMode].short;
+    sortBtn.classList.toggle('on', sortMode !== 'list');
+    sortBtn.setAttribute('aria-label', 'Sort: ' + SORTS[sortMode].label);
+  }
+  syncSortBtn();
+  sortBtn && sortBtn.addEventListener('click', () => {
+    sortMode = SORT_ORDER[(SORT_ORDER.indexOf(sortMode) + 1) % SORT_ORDER.length];
+    try { localStorage.setItem('sort-mode', sortMode); } catch {}
+    syncSortBtn();
+    renderCards();
+  });
+
   function renderCards() {
     cardsWrap.innerHTML = '';
-    const list = filtered();
+    const list = sorted(filtered());
 
     if (sectionTitle) sectionTitle.textContent = SECTION_LABELS[filter] || 'All Titles';
     if (sectionCount) sectionCount.textContent = list.length
