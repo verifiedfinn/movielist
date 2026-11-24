@@ -425,6 +425,12 @@ html, body {
   text-shadow: 0 0 6px #ffd600, 0 0 16px rgba(255,214,0,0.6);
 }
 
+/* Divider between where-filters and who-filters in the toolbar */
+.fbtn-sep {
+  flex-shrink: 0; width: 1px; height: 18px; margin: 0 4px;
+  background: rgba(0,255,255,0.25);
+}
+
 #navBright.on { color: #ffd600; }
 #navBright.on .n-ico { text-shadow: 0 0 6px #ffd600, 0 0 14px rgba(255,214,0,0.6); }
 #navBright:hover { color: #fff; background: rgba(0,255,255,0.07); }
@@ -434,7 +440,7 @@ html, body {
 
 @media (max-width: 900px) {
   /* Toolbar room: Tubi/Bollywood/brightness live in the drawer on phones */
-  .fbtn-tubi, .fbtn-bolly, #brightBtn { display: none; }
+  .fbtn-tubi, .fbtn-bolly, .fbtn-who, .fbtn-sep, #brightBtn { display: none; }
   .card-top .card-tag-badge { display: none; }
   .card-tags-inline {
     display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px;

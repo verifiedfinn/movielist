@@ -7,7 +7,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=62">
+  <link rel="stylesheet" href="css/style.css?v=63">
 </head>
 <body>
 
@@ -44,10 +44,6 @@
     <div class="h-rule"></div>
 
     <div id="hud">
-      <div class="hud-pill hud-status">
-        <span class="hdot"></span>
-        <span class="hud-lbl">Online</span>
-      </div>
       <div class="hud-pill hud-clock-pill">
         <span class="hud-lbl">Local</span>
         <span id="hudClock"><span id="cTime">00:00</span><span id="cAmpm" class="c-ampm">AM</span></span>
@@ -142,6 +138,10 @@
           <button class="fbtn" data-filter="favorites"><span class="fbtn-txt">Favs</span><span class="fbtn-ico" aria-hidden="true">★</span></button>
           <button class="fbtn fbtn-tubi" data-filter="tag:tubi">Tubi</button>
           <button class="fbtn fbtn-bolly" data-filter="tag:bollywood">Bollywood</button>
+          <span class="fbtn-sep" aria-hidden="true"></span>
+          <button class="fbtn fbtn-who" data-filter="tag:alam">Alam</button>
+          <button class="fbtn fbtn-who" data-filter="tag:isaac">Isaac</button>
+          <button class="fbtn fbtn-who" data-filter="tag:finn">Finn</button>
         </div>
         <button id="luckyBtn" aria-label="Lucky Draw — pick a random movie" title="Pick a random movie">
           <span id="lucky-btn-ico">◈</span><span id="lucky-btn-lbl">LUCKY</span>
