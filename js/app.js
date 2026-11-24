@@ -55,6 +55,43 @@
     ['finn',      /\bfinns?\b/i],
   ];
 
+  /* Spelling fixes for sheet titles: lowercased sheet title ->
+     [correct title, IMDb id]. Lets typos still find the right movie
+     without anyone editing the sheet. An imdb column value wins. */
+  const TITLE_FIXES = {
+    'atlantic rim': ['Atlantic Rim', 'tt2740710'],
+    'plan 9 from outerspace': ['Plan 9 from Outer Space', 'tt0052077'],
+    'santa clause versus the martians': ['Santa Claus Conquers the Martians', 'tt0058548'],
+    'osombi': ['Osombie', 'tt2141875'],
+    "kirk cameron's saving christmas": ["Kirk Cameron's Saving Christmas", 'tt4009460'],
+    'gingerbreadman 2': ['Gingerdead Man 2: Passion of the Crust', 'tt1161646'],
+    'kumare': ['Kumaré', 'tt1865425'],
+    'kumaré': ['Kumaré', 'tt1865425'],
+    'gingerdeadman vs evil bong': ['Gingerdead Man vs. Evil Bong', 'tt3234078'],
+    'grandmas boy': ["Grandma's Boy", 'tt0456554'],
+    'heroic times (1983)': ['Heroic Times (1983)', 'tt0847478'],
+    'raja ki aayegi baraat': ['Raja Ki Ayegi Baraat', 'tt0269758'],
+    'he said, she said': ['He Said, She Said', 'tt13660118'],
+    'singh is bling': ['Singh Is Bliing', 'tt3696192'],
+    'noahs shark': ["Noah's Shark", 'tt15241706'],
+    'attack of the killer donusts': ['Attack of the Killer Donuts', 'tt4480398'],
+    'pickleball excorcist': ['The Pickleball Exorcist', 'tt33344375'],
+    'i want to be neenja: the movie (2024)': ['I Want to Be Neenja! The Movie', 'tt27797014'],
+    'astroid vs earth': ['Asteroid vs Earth', 'tt3453772'],
+    'bigfoot vs megladon': ['Bigfoot vs Megalodon', 'tt13729678'],
+    'bigfoot vs zombies': ['Bigfoot vs Zombies', 'tt5307698'],
+    'krampus vs bigfoot': ['Bigfoot vs Krampus', 'tt20562862'],
+    'atlantic rim monsters vs machines': ['Atlantic Rim: Resurrection', 'tt7963218'],
+    'pirhana man vs werewolf man': ['Piranha-Man vs. Werewolf Man', 'tt1662556'],
+    'sharks vs mermaids': ['Mermaid vs. Shark', 'tt37455562'],
+    'little mermaid vs megajaws': ['The Little Mermaid vs. Mega Jaws', 'tt41052771'],
+    'sharktapus vs whalewolf': ['Sharktopus vs. Whalewolf', 'tt3292154'],
+    'babysitters vs vamps': ['Babysitters vs. Vamps', 'tt37501890'],
+    'mega shark vs collossus': ['Mega Shark vs. Kolossus', 'tt4566574'],
+    'mega shark vs crocosauraus': ['Mega Shark vs. Crocosaurus', 'tt1705773'],
+    'gayn****** from outerspace': [null, 'tt0274518'],
+  };
+
   /* Full CSV tokenizer: handles quoted commas, "" escapes and
      line breaks inside a quoted cell (a stray Enter in a sheet cell). */
   function csvRows(text) {
@@ -87,7 +124,9 @@
       const isSeen  = ['true', 'yes', '1', 'y'].includes(seenRaw);
       /* Optional columns: imdb (tt1234567 or an IMDb URL) pins the exact
          match; tags is a comma list like "tubi, bollywood". */
-      const imdbId  = ((row.imdb || '').match(/tt\d{6,}/) || [''])[0];
+      const fix     = TITLE_FIXES[(row.title || '').toLowerCase()];
+      if (fix && fix[0]) row.title = fix[0];
+      const imdbId  = ((row.imdb || '').match(/tt\d{6,}/) || [''])[0] || (fix ? fix[1] : '');
       const tags    = (row.tags || '').split(/[,;]/).map(t => t.trim().toLowerCase()).filter(Boolean);
       /* Auto-label from the notes text too, so new rows tag themselves */
       for (const [tag, re] of NOTE_TAGS) {
