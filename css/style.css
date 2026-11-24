@@ -771,9 +771,15 @@ body.bright-posters #detail-poster-tint { opacity: 0; }
 
 /* Lucky draw: skip labels */
 #lucky-skip {
-  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
-  gap: 6px; margin-top: 4px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; margin-top: 6px;
 }
+.lucky-skip-row {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 5px;
+}
+.lucky-skip-row .lucky-skip-lbl { width: 56px; text-align: right; margin-right: 4px; }
+.lsc-n { margin-left: 5px; opacity: 0.55; font-size: 8px; }
+.lucky-skip-chip:disabled { opacity: 0.25; cursor: default; box-shadow: none; }
 #lucky-skip[hidden] { display: none; }
 .lucky-skip-lbl {
   font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;

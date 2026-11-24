@@ -1201,32 +1201,56 @@
     }
   }
 
-  /* ── Lucky skip labels: leave chosen labels out of the draw ── */
+  /* ── Lucky draw pool: always starts from ALL titles, everything switched
+     on; tap a chip to take that group out. Resets each time it opens. ── */
   const luckySkipEl = document.getElementById('lucky-skip');
-  let luckySkip;
-  try { luckySkip = new Set(JSON.parse(localStorage.getItem('lucky-skip') || '[]')); }
-  catch { luckySkip = new Set(); }
+  let luckySkip = new Set();
+
+  const LUCKY_GROUPS = [
+    { name: 'Status', keys: [
+      { k: 'seen',  label: 'Seen',  hit: m => m.status === STATUS.SEEN },
+      { k: 'queue', label: 'Queue', hit: m => m.status === STATUS.QUEUE },
+      { k: 'fav',   label: 'Favs',  hit: m => m.favorite },
+    ]},
+    { name: 'Where', keys: [
+      { k: 'tubi',      label: 'Tubi',  hit: m => m.tags.includes('tubi') },
+      { k: 'bollywood', label: 'Bolly', hit: m => m.tags.includes('bollywood') },
+    ]},
+    { name: 'From', keys: [
+      { k: 'alam',  label: 'Alam',  hit: m => m.tags.includes('alam') },
+      { k: 'isaac', label: 'Isaac', hit: m => m.tags.includes('isaac') },
+      { k: 'finn',  label: 'Finn',  hit: m => m.tags.includes('finn') },
+      { k: 'other', label: 'Other', hit: m => !m.tags.some(t => TAGS[t] && TAGS[t].group === 'by') },
+    ]},
+  ];
+  const LUCKY_KEYS = LUCKY_GROUPS.flatMap(g => g.keys);
 
   function luckyPool() {
-    return filtered().filter(m => !m.tags.some(t => luckySkip.has(t)));
+    const off = LUCKY_KEYS.filter(x => luckySkip.has(x.k));
+    return movies.filter(m => !off.some(x => x.hit(m)));
   }
 
   function updateLuckyLabel() {
     const n = luckyPool().length;
-    luckyPoolLabel.textContent =
-      `Picking from: ${SECTION_LABELS[filter] || 'All'} · ${n} title${n !== 1 ? 's' : ''}`;
+    luckyPoolLabel.textContent = luckySkip.size
+      ? `Picking from ${n} of ${movies.length} titles`
+      : `Picking from: All · ${n} title${n !== 1 ? 's' : ''}`;
     if (!luckyDealing) luckyDealBtn.disabled = n === 0;
   }
 
   function renderLuckySkip() {
-    const present = new Set(filtered().flatMap(m => m.tags));
-    const keys = Object.keys(TAGS).filter(t => present.has(t));
-    luckySkipEl.hidden = !keys.length;
-    luckySkipEl.innerHTML = keys.length
-      ? `<span class="lucky-skip-lbl">Skip</span>` + keys.map(t =>
-          `<button type="button" class="lucky-skip-chip tag-${t}${luckySkip.has(t) ? ' on' : ''}"
-             data-tag="${t}" aria-pressed="${luckySkip.has(t)}">${TAGS[t].label}</button>`).join('')
-      : '';
+    luckySkipEl.hidden = false;
+    luckySkipEl.innerHTML = LUCKY_GROUPS.map(g => `
+      <div class="lucky-skip-row">
+        <span class="lucky-skip-lbl">${g.name}</span>
+        ${g.keys.map(x => {
+          const n = movies.filter(x.hit).length;
+          const off = luckySkip.has(x.k);
+          return `<button type="button" class="lucky-skip-chip tag-${x.k}${off ? ' on' : ''}"
+            data-tag="${x.k}" aria-pressed="${!off}" ${n ? '' : 'disabled'}
+            title="${off ? 'Add back' : 'Take out'} ${x.label}">${x.label}<span class="lsc-n">${n}</span></button>`;
+        }).join('')}
+      </div>`).join('');
   }
 
   luckySkipEl.addEventListener('click', e => {
@@ -1234,12 +1258,12 @@
     if (!b || luckyDealing) return;
     const t = b.dataset.tag;
     luckySkip.has(t) ? luckySkip.delete(t) : luckySkip.add(t);
-    try { localStorage.setItem('lucky-skip', JSON.stringify([...luckySkip])); } catch {}
     renderLuckySkip();
     updateLuckyLabel();
   });
 
   function openLucky() {
+    luckySkip = new Set();
     renderLuckySkip();
     updateLuckyLabel();
     luckyResult.hidden   = true;
