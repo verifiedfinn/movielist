@@ -38,32 +38,44 @@
   setInterval(tickClock, 1000);
 
   /* ── CSV parser ── */
-  function splitCSVRow(line) {
-    const vals = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === ',' && !inQ) { vals.push(cur); cur = ''; }
-      else { cur += ch; }
+  /* Full CSV tokenizer: handles quoted commas, "" escapes and
+     line breaks inside a quoted cell (a stray Enter in a sheet cell). */
+  function csvRows(text) {
+    const rows = [];
+    let row = [], cur = '', inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQ) {
+        if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') inQ = false;
+        else cur += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else cur += ch;
     }
-    vals.push(cur);
-    return vals;
+    if (cur || row.length) { row.push(cur); rows.push(row); }
+    return rows;
   }
 
   function parseCSV(raw) {
-    const lines = raw.replace(/\r/g, '').trim().split('\n').filter(l => l.trim());
-    if (lines.length < 2) return [];
-    const headers = splitCSVRow(lines[0]).map(h => h.trim().toLowerCase());
-    return lines.slice(1).map((line, idx) => {
-      const vals = splitCSVRow(line);
+    const rows = csvRows(raw.replace(/\r/g, ''));
+    if (rows.length < 2) return [];
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    return rows.slice(1).map((vals, idx) => {
       const row  = {};
-      headers.forEach((h, i) => { row[h] = (vals[i] || '').trim(); });
+      headers.forEach((h, i) => { row[h] = (vals[i] || '').replace(/\s+/g, ' ').trim(); });
       const favRaw  = (row.favorite || '').toLowerCase();
       const seenRaw = (row.seen     || '').toLowerCase();
       const isSeen  = ['true', 'yes', '1', 'y'].includes(seenRaw);
+      /* Optional columns: imdb (tt1234567 or an IMDb URL) pins the exact
+         match; tags is a comma list like "tubi, bollywood". */
+      const imdbId  = ((row.imdb || '').match(/tt\d{6,}/) || [''])[0];
+      const tags    = (row.tags || '').split(/[,;]/).map(t => t.trim().toLowerCase()).filter(Boolean);
       return {
         id:       idx + 1,
+        imdbId,
+        tags,
         title:    row.title   || '',
         status:   isSeen ? STATUS.SEEN : (row.status || STATUS.QUEUE).toLowerCase(),
         favorite: ['true', 'yes', '1', 'y'].includes(favRaw),
@@ -96,18 +108,26 @@
     catch {} // storage quota full — fail silently
   }
 
-  async function fetchOMDB(title) {
-    const cached = omdbCacheGet(title);
+  /* Lookup priority: IMDb id from the sheet (exact), otherwise title,
+     with a trailing "(1986)" pulled out into OMDb's year param. */
+  async function fetchOMDB(m) {
+    const key = m.imdbId || m.title;
+    const cached = omdbCacheGet(key);
     if (cached !== undefined) return cached;
-    const url = OMDB_BASE + '?' +
-      new URLSearchParams({ t: title, apikey: OMDB_KEY, plot: 'short' });
+    const p = { apikey: OMDB_KEY, plot: 'short' };
+    if (m.imdbId) p.i = m.imdbId;
+    else {
+      const ym = m.title.match(/^(.*?)\s*\((\d{4})\)$/);
+      p.t = ym ? ym[1] : m.title;
+      if (ym) p.y = ym[2];
+    }
     try {
-      const r = await fetch(url);
+      const r = await fetch(OMDB_BASE + '?' + new URLSearchParams(p));
       if (!r.ok) return null;
       const d = await r.json();
       if (d.Error && d.Error.toLowerCase().includes('limit')) return null; // rate-limited — don't cache
       const result = d.Response === 'True' ? d : null;
-      omdbCacheSet(title, result);
+      omdbCacheSet(key, result);
       return result;
     } catch { return null; }
   }
@@ -600,7 +620,7 @@
     for (let i = 0; i < movies.length; i += BATCH) {
       await Promise.all(
         movies.slice(i, i + BATCH).map(async m => {
-          const d = await fetchOMDB(m.title);
+          const d = await fetchOMDB(m);
           if (d) applyOMDB(m, d);
           else   m.corrupted = true;
           m.enriched = true;
@@ -624,11 +644,13 @@
     if (filter === STATUS.SEEN)  return movies.filter(m => m.status === STATUS.SEEN);
     if (filter === STATUS.QUEUE) return movies.filter(m => m.status === STATUS.QUEUE);
     if (filter === 'favorites')  return movies.filter(m => m.favorite);
+    if (filter.startsWith('tag:')) return movies.filter(m => m.tags.includes(filter.slice(4)));
     return movies;
   }
 
   const SECTION_LABELS = {
-    all: 'All Titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites'
+    all: 'All Titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites',
+    'tag:tubi': 'On Tubi', 'tag:bollywood': 'Bollywood'
   };
 
   function setFilter(f) {
@@ -679,10 +701,14 @@
     </div>`;
   }
 
+  const TAG_LABELS = { tubi: 'Tubi', bollywood: 'Bolly' };
+
   /* Shared card-top badge markup */
   function cardTopBadges(m) {
     return `
       <span class="card-status-badge ${m.status}">${m.status === STATUS.SEEN ? 'Seen' : 'Queue'}</span>
+      ${m.tags.filter(t => TAG_LABELS[t]).map(t =>
+        `<span class="card-tag-badge tag-${t}">${TAG_LABELS[t]}</span>`).join('')}
       ${m.favorite ? '<span class="card-fav-badge">★</span>' : ''}`;
   }
 
@@ -1077,9 +1103,8 @@
 
   function openLucky() {
     const pool = filtered();
-    const labels = { all: 'All Titles', seen: 'Seen', queue: 'Queue', favorites: 'Favorites' };
     luckyPoolLabel.textContent =
-      `Picking from: ${labels[filter] || 'All'} · ${pool.length} title${pool.length !== 1 ? 's' : ''}`;
+      `Picking from: ${SECTION_LABELS[filter] || 'All'} · ${pool.length} title${pool.length !== 1 ? 's' : ''}`;
     luckyResult.hidden   = true;
     luckyAgainBtn.hidden = true;
     luckyDealBtn.hidden  = false;

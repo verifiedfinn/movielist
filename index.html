@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>THE Movie List</title>
-  <link rel="stylesheet" href="css/style.css?v=55">
+  <link rel="stylesheet" href="css/style.css?v=57">
 </head>
 <body>
 
@@ -71,6 +71,15 @@
       </div>
 
       <div class="p-rule"></div>
+      <div class="p-label">Where</div>
+      <div class="nav-item nav-tag-tubi" data-filter="tag:tubi">
+        <span class="n-ico">&#9654;</span> Tubi
+      </div>
+      <div class="nav-item nav-tag-bollywood" data-filter="tag:bollywood">
+        <span class="n-ico">&#10022;</span> Bollywood
+      </div>
+
+      <div class="p-rule"></div>
       <div class="p-label">Actions</div>
       <div class="nav-item" id="navLucky">
         <span class="n-ico">&#9672;</span> Lucky Draw
@@ -113,6 +122,8 @@
           <button class="fbtn" data-filter="queue">Queue</button>
           <button class="fbtn" data-filter="seen">Seen</button>
           <button class="fbtn" data-filter="favorites"><span class="fbtn-txt">Favs</span><span class="fbtn-ico" aria-hidden="true">★</span></button>
+          <button class="fbtn fbtn-tubi" data-filter="tag:tubi">Tubi</button>
+          <button class="fbtn fbtn-bolly" data-filter="tag:bollywood">Bollywood</button>
         </div>
         <button id="luckyBtn" aria-label="Lucky Draw — pick a random movie" title="Pick a random movie">
           <span id="lucky-btn-ico">◈</span><span id="lucky-btn-lbl">LUCKY</span>
@@ -201,7 +212,7 @@
   </div>
 </div>
 
-<script src="js/canvas.js?v=44"></script>
-<script src="js/app.js?v=57"></script>
+<script src="js/canvas.js?v=46"></script>
+<script src="js/app.js?v=59"></script>
 </body>
 </html>
