@@ -2511,6 +2511,58 @@ a, button, [role="button"], [tabindex] {
 .lucky-btn-secondary:hover { background: rgba(0,255,255,0.12); color: #00ffff; }
 .lucky-btn-secondary[hidden] { display: none !important; }
 
+/* Toolbar search box (left of LUCKY) */
+#filter-scroll { min-width: 0; }
+#searchBox {
+  flex-shrink: 0; position: relative;
+  display: flex; align-items: center;
+  width: 170px; height: 34px;
+  background: rgba(0,255,255,0.05);
+  border: 1px solid rgba(0,255,255,0.35);
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  transition: width .2s ease, border-color .18s, background .18s, box-shadow .18s;
+}
+#searchBox:focus-within, #searchBox.has-query {
+  border-color: #00ffff; background: rgba(0,255,255,0.10);
+  box-shadow: inset 0 0 14px rgba(0,255,255,0.10);
+}
+#searchBox:focus-within { width: 230px; }
+#search-ico {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 30px; text-align: center;
+  font-size: 18px; line-height: 1; color: rgba(0,255,255,0.75);
+  text-shadow: 0 0 6px rgba(0,255,255,0.6); pointer-events: none;
+}
+#searchInput {
+  flex: 1; min-width: 0; height: 100%;
+  padding: 0 4px 0 30px; margin: 0;
+  font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 0.06em;
+  color: #fff; background: transparent; border: 0; outline: 0; border-radius: 0;
+  -webkit-appearance: none; appearance: none;
+}
+#searchInput::placeholder { color: rgba(0,255,255,0.50); text-transform: uppercase; }
+#searchInput::-webkit-search-cancel-button,
+#searchInput::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+#searchClear {
+  flex-shrink: 0; width: 28px; height: 100%; padding: 0;
+  font-size: 11px; line-height: 1; color: rgba(0,255,255,0.75);
+  background: transparent; border: 0; cursor: pointer;
+}
+#searchClear:hover { color: #fff; }
+#searchClear[hidden] { display: none; }
+
+@media (max-width: 900px) {
+  /* Phones: compact until tapped, then it takes the room from the filters.
+     16px text stops iOS zooming the page on focus. */
+  #searchBox { width: 40px; height: 36px; }
+  #searchBox.has-query { width: 120px; }
+  #searchBox:focus-within { width: min(58vw, 240px); }
+  #search-ico { width: 38px; }
+  #searchInput { padding-left: 38px; font-family: inherit; font-size: 16px; letter-spacing: 0; }
+  #searchInput::placeholder { font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 0.08em; }
+  #searchBox:not(:focus-within):not(.has-query) #searchInput::placeholder { color: transparent; }
+}
+
 /* Toolbar lucky button */
 #luckyBtn {
   flex-shrink: 0;

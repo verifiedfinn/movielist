@@ -7,7 +7,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="css/style.css?v=65">
+  <link rel="stylesheet" href="css/style.css?v=66">
 </head>
 <body>
 
@@ -143,7 +143,13 @@
           <button class="fbtn fbtn-who" data-filter="tag:isaac">Isaac</button>
           <button class="fbtn fbtn-who" data-filter="tag:finn">Finn</button>
         </div>
-        <button id="luckyBtn" aria-label="Lucky Draw — pick a random movie" title="Pick a random movie">
+        <div id="searchBox">
+          <span id="search-ico" aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="Search" aria-label="Search titles"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+          <button id="searchClear" type="button" aria-label="Clear search" hidden>✕</button>
+        </div>
+        <button id="luckyBtn"aria-label="Lucky Draw — pick a random movie" title="Pick a random movie">
           <span id="lucky-btn-ico">◈</span><span id="lucky-btn-lbl">LUCKY</span>
         </button>
         <button id="brightBtn" aria-pressed="false" aria-label="Brighter posters" title="Brighter posters">☀</button>
@@ -236,7 +242,7 @@
 </div>
 
 <script src="js/canvas.js?v=46"></script>
-<script src="js/app.js?v=68"></script>
+<script src="js/app.js?v=69"></script>
 <script src="js/clown.js?v=2"></script>
 </body>
 </html>

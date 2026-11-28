@@ -729,12 +729,54 @@
   }
 
   /* ── Filter ── */
-  function filtered() {
+  function byFilter() {
     if (filter === STATUS.SEEN)  return movies.filter(m => m.status === STATUS.SEEN);
     if (filter === STATUS.QUEUE) return movies.filter(m => m.status === STATUS.QUEUE);
     if (filter === 'favorites')  return movies.filter(m => m.favorite);
     if (filter.startsWith('tag:')) return movies.filter(m => m.tags.includes(filter.slice(4)));
     return movies;
+  }
+
+  /* ── Search: narrows the current filter; every word must match
+        somewhere in title / year / director / genre ── */
+  let query = '';
+  const norm = s => String(s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+  function filtered() {
+    const list = byFilter();
+    const words = norm(query).split(' ').filter(Boolean);
+    if (!words.length) return list;
+    return list.filter(m => {
+      const hay = norm([m.title, m.year, m.director, m.genre].join(' '));
+      return words.every(w => hay.includes(w));
+    });
+  }
+
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  function setQuery(q) {
+    query = q;
+    if (searchInput.value !== q) searchInput.value = q;
+    searchClear.hidden = !q;
+    searchInput.parentElement.classList.toggle('has-query', !!q);
+    renderCards();
+  }
+  if (searchInput) {
+    searchInput.addEventListener('input', () => setQuery(searchInput.value));
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.stopPropagation(); query ? setQuery('') : searchInput.blur(); }
+      if (e.key === 'Enter') searchInput.blur();   /* drop the phone keyboard */
+    });
+    searchClear.addEventListener('click', () => { setQuery(''); searchInput.focus(); });
+    /* "/" jumps to search unless already typing somewhere */
+    document.addEventListener('keydown', e => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+      if (document.querySelector('#detail-overlay.open, #lucky-overlay.open')) return;
+      e.preventDefault();
+      searchInput.focus();
+    });
   }
 
   const SECTION_LABELS = {
@@ -860,7 +902,7 @@
       cardsWrap.innerHTML = `
         <div class="empty">
           <div class="empty-glyph">◈</div>
-          <div class="empty-text">No titles in this sector</div>
+          <div class="empty-text">${query.trim() ? `No match for “${escHtml(query.trim())}”` : 'No titles in this sector'}</div>
         </div>`;
       return;
     }
